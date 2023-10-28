@@ -46,4 +46,3 @@ In this collection, you'll find a carefully curated selection of books, articles
 | [Feral Concurrency Control: An Empirical Investigation of Modern Application Integrity](http://www.bailis.org/papers/feral-sigmod2015.pdf) | Done    | [Summary](articles/feral-scalable-recoverable-file-system-summary.md) |
 | [Paxos Made Live](https://read.seas.harvard.edu/~kohler/class/08w-dsi/chandra07paxos.pdf) | Done    | [Summary](articles/paxos-made-simple-summary.md) |
 
-Feel free to check back for
