@@ -6,28 +6,28 @@ In this collection, you'll find a carefully curated selection of books, articles
 
 ## Books
 
-| Name                                                                                                 | Status                               | Summary        |
-|------------------------------------------------------------------------------------------------------|----------------------------------------|----------------|
-| [Functional Programming in Scala 2nd Edition by Micheal Pilquist](https://www.manning.com/books/functional-programming-in-scala) | In Progress    | [N/A](books/functional-programming-in-scala-summary.md) |
-| [Modern System Programming with Scala Native by Richard Whaling](books/modern-system-programming-with-scala-native.md) | In Progress    | [N/A](books/modern-system-programming-with-scala-native-summary.md) |
-| [Dependency Injection Principles, Practices, and Patterns by Seemann, Mark](README_Dependency_Injection.md) | Done    | [N/A](books/dependency-injection-principles-practices-patterns-summary.md) |
-| [The Art of Readable Code by Dustin Boswell, Trevor Foucher](README_The_Art_of_Readable_Code.md) | Done    | [N/A](books/the-art-of-readable-code-summary.md) |
-| [AWS Certified Developer Official Study Guide](README_AWS_Certified_Developer.md)                  | Done    | [N/A](books/aws-certified-developer-study-guide-summary.md) |
-| [Cloud Native DevOps with Kubernetes by John Arundel, Justin Domingus](README_Cloud_Native_DevOps.md) | Done    | [N/A](books/cloud-native-devops-with-kubernetes-summary.md) |
-| [Learning Spark 2.0 - Lightning-Fast Data Analytics by Jules S. Damji, Brooke Wenig](README_Learning_Spark_2.md) | Done    | [N/A](books/learning-spark-summary.md) |
-| [Communicating Sequential Processes by C. A. R. Hoare](http://www.usingcsp.com/cspbook.pdf) | N/A    | [N/A](books/commuting-sequential-process-summary.md) |
-| [International Logistics and Freight Forwarder](README_AWS_Certified_Developer.md) | N/A | [N/A](books/international-logistics-and-freight-forwarder-summary.md) |
-| [The Art of Computer Programming](books/the-art-of-computer-programming.md) | N/A | [N/A](books/the-art-of-computer-programming-summary.md) |
-| [Refactoring](books/refactoring-summary.md) | N/A | [N/A](books/refactoring-summary.md) |
-| [Design Patterns - Elements of Reusable OOP Software](books/design-patterns-elements-of-reusable-oop-software.md) | N/A | [N/A](books/design-patterns-elements-of-reusable-oop-software-summary.md) |
-| [Refactoring: Improving the Design of Existing Code](books/refactoring-improving-the-design-of-existing-code.md) | N/A | [N/A](books/refactoring-improving-the-design-of-existing-code-summary.md) |
-| [The Pragmatic Programmer by David Tohmas, Andrew Hunt](books/the-pragmatic-programmer.md) | N/A    | [N/A](books/the-pragmatic-programmer-summary.md) |
-| [Patterns of Enterprise Application Architecture](books/patterns-of-enterprise-application-architecture.md) | N/A | [N/A](books/patterns-of-enterprise-application-architecture-summary.md) |
-| [Introduction to Statistical Learning](books/introduction-to-statistical-learning.md) | N/A | [N/A](books/introduction-to-statistical-learning-summary.md) |
-| [Clean Code](books/clean-code.md) | N/A | [N/A](books/clean-code-summary.md) |
-| [C# in Depth by Jon Skeet](books/c-sharp-in-depth.md) | Done    | [N/A](books/c-sharp-in-depth-summary.md) |
-| [Designing Data-Intensive Applications by Martin Kleppmann](books/designing-data-intensive-applications.md) | Done    | [N/A](books/designing-data-intensive-applications-summary.md) |
-| Code - The hidden language of of Computer hardware and software | N/A | N/A |
+| Name                                                                                                                             | Status      | Summary                                                                    |
+|----------------------------------------------------------------------------------------------------------------------------------|-------------|----------------------------------------------------------------------------|
+| [Functional Programming in Scala 2nd Edition by Micheal Pilquist](https://www.manning.com/books/functional-programming-in-scala) | In Progress | [N/A](books/functional-programming-in-scala-summary.md)                    |
+| [Modern System Programming with Scala Native by Richard Whaling](books/modern-system-programming-with-scala-native.md)           | In Progress | [N/A](books/modern-system-programming-with-scala-native-summary.md)        |
+| [Dependency Injection Principles, Practices, and Patterns by Seemann, Mark](README_Dependency_Injection.md)                      | Done        | [N/A](books/dependency-injection-principles-practices-patterns-summary.md) |
+| [The Art of Readable Code by Dustin Boswell, Trevor Foucher](README_The_Art_of_Readable_Code.md)                                 | Done        | [N/A](books/the-art-of-readable-code-summary.md)                           |
+| [AWS Certified Developer Official Study Guide](README_AWS_Certified_Developer.md)                                                | Done        | [N/A](books/aws-certified-developer-study-guide-summary.md)                |
+| [Cloud Native DevOps with Kubernetes by John Arundel, Justin Domingus](README_Cloud_Native_DevOps.md)                            | Done        | [N/A](books/cloud-native-devops-with-kubernetes-summary.md)                |
+| [Learning Spark 2.0 - Lightning-Fast Data Analytics by Jules S. Damji, Brooke Wenig](README_Learning_Spark_2.md)                 | Done        | [N/A](books/learning-spark-summary.md)                                     |
+| [Communicating Sequential Processes by C. A. R. Hoare](http://www.usingcsp.com/cspbook.pdf)                                      | N/A         | [N/A](books/commuting-sequential-process-summary.md)                       |
+| [International Logistics and Freight Forwarder](README_AWS_Certified_Developer.md)                                               | N/A         | [N/A](books/international-logistics-and-freight-forwarder-summary.md)      |
+| [The Art of Computer Programming](books/the-art-of-computer-programming.md)                                                      | N/A         | [N/A](books/the-art-of-computer-programming-summary.md)                    |
+| [Refactoring](books/refactoring-summary.md)                                                                                      | N/A         | [N/A](books/refactoring-summary.md)                                        |
+| [Design Patterns - Elements of Reusable OOP Software](books/design-patterns-elements-of-reusable-oop-software.md)                | N/A         | [N/A](books/design-patterns-elements-of-reusable-oop-software-summary.md)  |
+| [Refactoring: Improving the Design of Existing Code](books/refactoring-improving-the-design-of-existing-code.md)                 | N/A         | [N/A](books/refactoring-improving-the-design-of-existing-code-summary.md)  |
+| [The Pragmatic Programmer by David Tohmas, Andrew Hunt](books/the-pragmatic-programmer.md)                                       | N/A         | [N/A](books/the-pragmatic-programmer-summary.md)                           |
+| [Patterns of Enterprise Application Architecture](books/patterns-of-enterprise-application-architecture.md)                      | N/A         | [N/A](books/patterns-of-enterprise-application-architecture-summary.md)    |
+| [Introduction to Statistical Learning](books/introduction-to-statistical-learning.md)                                            | N/A         | [N/A](books/introduction-to-statistical-learning-summary.md)               |
+| [Clean Code](books/clean-code.md)                                                                                                | N/A         | [N/A](books/clean-code-summary.md)                                         |
+| [C# in Depth by Jon Skeet](books/c-sharp-in-depth.md)                                                                            | Done        | [N/A](books/c-sharp-in-depth-summary.md)                                   |
+| [Designing Data-Intensive Applications by Martin Kleppmann](books/designing-data-intensive-applications.md)                      | Done        | [N/A](books/designing-data-intensive-applications-summary.md)              |
+| Code - The hidden language of of Computer hardware and software                                                                  | N/A         | N/A                                                                        |
 
 ## Articles
 
