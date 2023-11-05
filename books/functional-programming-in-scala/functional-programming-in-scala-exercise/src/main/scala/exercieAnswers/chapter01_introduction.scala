@@ -1,7 +1,7 @@
 ﻿package exercieAnswers
 
 
-object chapter01_introduction_to_functional_programming {
+object chapter01_introduction {
   // Example of pure function with no side effect
   case class Charge(cc: CreditCard, amount: Double) {
     def combine(other: Charge): Charge = if (cc == other.cc) {
