@@ -5,7 +5,7 @@ import scala.util.{Failure, Try}
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 import scala.annotation.tailrec
 
-final class Actor[A](strategy: Strategy)(handler: A => Unit, onError: Throwable => Unit = throw(_)) {
+final class Actor[A](strategy: Strategy)(handler: A => Unit, onError: Throwable => Unit = throw _) {
   self =>
 
   private val tail = new AtomicReference(new Node[A]()) // tail of message queue
@@ -65,7 +65,7 @@ final class Actor[A](strategy: Strategy)(handler: A => Unit, onError: Throwable 
 }
 
 object Actor {
-  def apply[A](es: ExecutorService)(handler: A => Unit, onError: Throwable => Unit = throw(_)): Actor[A] = new Actor[A](Strategy.fromExecutorService(es))(handler, onError)
+  def apply[A](es: ExecutorService)(handler: A => Unit, onError: Throwable => Unit = throw _): Actor[A] = new Actor[A](Strategy.fromExecutorService(es))(handler, onError)
 }
 
 trait Strategy {
@@ -75,7 +75,7 @@ trait Strategy {
 object Strategy {
   def fromExecutorService(es: ExecutorService): Strategy = new Strategy {
     override def apply[A](a: => A): () => A = {
-      val f = es.submit { new Callable[A] { def call = a }}
+      val f = es.submit { new Callable[A] { def call: A = a }}
       () => f.get()
     }
   }
@@ -92,8 +92,8 @@ private class Node[A](var a: A = null.asInstanceOf[A]) extends AtomicReference[N
 
 
 object Example {
-  val s = Executors.newFixedThreadPool(4)
-  val echoers = Actor[String](s)(msg => println(s"Got message: $msg"))
-  echoers ! "hello"
-  echoers ! "goodbye"
+  val s: ExecutorService = Executors.newFixedThreadPool(4)
+  private val echoes = Actor[String](s)(msg => println(s"Got message: $msg"))
+  echoes ! "hello"
+  echoes ! "goodbye"
 }
