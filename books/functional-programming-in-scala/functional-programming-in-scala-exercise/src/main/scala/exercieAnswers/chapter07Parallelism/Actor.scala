@@ -1,6 +1,6 @@
 ﻿package exercieAnswers.chapter07Parallelism
 
-import java.util.concurrent.{Callable, ExecutorService}
+import java.util.concurrent.{Callable, ExecutorService, Executors}
 import scala.util.{Failure, Try}
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 import scala.annotation.tailrec
@@ -89,3 +89,11 @@ object Strategy {
 }
 
 private class Node[A](var a: A = null.asInstanceOf[A]) extends AtomicReference[Node[A]] // Representing a node in the non-intrusive MPSC queue
+
+
+object Example {
+  val s = Executors.newFixedThreadPool(4)
+  val echoers = Actor[String](s)(msg => println(s"Got message: $msg"))
+  echoers ! "hello"
+  echoers ! "goodbye"
+}

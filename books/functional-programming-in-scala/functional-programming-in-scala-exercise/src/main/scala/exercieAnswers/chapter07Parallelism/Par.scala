@@ -139,4 +139,23 @@ object Par {
 
   // fix fork to avoid deadlock
   def delay[A](fa: => Par[A]): Par[A] = es => fa(es)
+
+  def choice[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] = es => if (cond(es).get) t(es) else f(es)
+
+  def choiceN[A](n: Par[Int])(choices: List[Par[A]]): Par[A] = es => choices(n(es).get / choices.size)(es)
+
+  def choiceViaChoiceN[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] = choiceN(map(cond)(b => if (b) 0 else 1))(List(t, f))
+
+  def choiceMap[K, V](key: Par[K])(choices: Map[K, Par[V]]): Par[V] = es => choices(key(es).get)(es)
+
+  def flatMap[A, B](pa: Par[A])(f: A => Par[B]): Par[B] = es => f(pa(es).get)(es)
+
+
+  def choiceViaFlatMap[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] = flatMap(cond)(b => if(b) t else f)
+  def choiceNViaFlatMap[A](n: Par[Int])(choices: List[Par[A]]): Par[A] = flatMap(n)(choices(_))
+  def choiceMapViaFlatMap[K, V](key: Par[K])(choices: Map[K, Par[V]]): Par[V] = flatMap(key)(choices(_))
+
+  def join[A](ppa: Par[Par[A]]): Par[A] = es => ppa(es).get()(es)
+  def joinViaFlatMap[A](ppa: Par[Par[A]]): Par[A] = flatMap(ppa)(identity)
+  def flatMapViaJoin[A, B](pa: Par[A])(f: A => Par[B]): Par[B] = join(map(pa)(f))
 }
