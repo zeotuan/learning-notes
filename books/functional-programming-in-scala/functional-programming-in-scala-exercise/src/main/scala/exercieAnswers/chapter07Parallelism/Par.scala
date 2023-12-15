@@ -111,7 +111,8 @@ object Par {
   })
 
   // Law of Mapping
-  def equal[A](e: ExecutorService)(p: Par[A], p2: Par[A]): Boolean = p(e).get == p2(e).get
+  def equal[A](p: Par[A], p2: Par[A]): Par[Boolean] = Par.map2(p, p2)(_ == _)
+  def equal[A](e: ExecutorService)(p: Par[A], p2: Par[A]): Boolean = equal(p, p2)(e).get
   assert(map(unit(1))(_ + 1) == unit(2))
   // unit(1).map(_ + 1) == unit(2)
   // unit(x).map(f) == unit(f(x))

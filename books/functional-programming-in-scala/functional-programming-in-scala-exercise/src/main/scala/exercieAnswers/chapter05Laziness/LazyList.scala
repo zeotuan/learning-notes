@@ -91,7 +91,7 @@ sealed trait LazyList[+A] {
   def append[A2 >: A](that: => LazyList[A2]): LazyList[A2] = foldRight(that)((a,b) => cons(a, b))
   def flatMap[B](f: A => LazyList[B]): LazyList[B] = foldRight(empty: LazyList[B])((a,b) => f(a).append(b))
 
-  def finder(p: A => Boolean): Option[A] = filter(p).headOption
+  def find(p: A => Boolean): Option[A] = filter(p).headOption
 
   // Exercise 5.13: Implement map, take, takeWhile, zipAll via unfold
   def mapViaUnfold[B](f: A => B): LazyList[B] = unfold(this) {
@@ -191,11 +191,11 @@ object LazyList {
   // a infinite list of ones
   val ones: LazyList[Int] = cons(1, ones)
 
-  // Exercise 5.8: Implement a generic infinite List
-  // We would immediately think of cons(a, continually(a))
-  // but this would involve lots more function call
-  // but the optimization below allow us to have only one object referencing itself
-
+  /** Exercise 5.8: Implement a generic infinite List:
+   * We would immediately think of `cons(a, continually(a))`
+   * but this would involve lots more function call.
+   * the optimization below allow us to have only one object referencing itself
+  */
   def continually[A](a: A): LazyList[A] = {
     lazy val infiniteList = cons(a, infiniteList)
     infiniteList

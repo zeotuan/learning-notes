@@ -40,6 +40,10 @@ object RNG {
     (if (n < 0) -(n + 1) else n, r1)
   }
 
+  def boolean(rng :RNG): (Boolean, RNG) = rng.nextInt match {
+    case (i, rng2) => (i%2==0, rng2)
+  }
+
   // Exercise 6.2: function that generate random double in range 0 to 1
   def double(rng: RNG): (Double, RNG) = {
     val (i, r1) = nonNegative(rng)
