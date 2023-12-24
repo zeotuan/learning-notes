@@ -157,6 +157,9 @@ object Gen {
     (f, rng2)
   }))
 
+  def stringN(n: Int): Gen[String] = listOfN(n, choose(0, 127)).map(_.map(_.toChar).mkString)
+
+  val string: SGen[String] = SGen(stringN)
 }
 
 case class SGen[+A](g: Int => Gen[A]) {

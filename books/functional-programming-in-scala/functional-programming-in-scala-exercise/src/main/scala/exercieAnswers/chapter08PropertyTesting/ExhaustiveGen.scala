@@ -136,6 +136,7 @@ case class Gen[+A](sample: State[RNG, A], exhaustive: LazyList[Option[A]]) {
     case None => LazyList(None)
     case Some(a) => f(a).exhaustive
   })
+
   def map[B](f: A => B): Gen[B] = Gen(sample.map(f), exhaustive.map(_.map(f)))
 
   def map2[B, C](g: Gen[B])(f: (A,B) => C): Gen[C] = Gen(sample.map2(g.sample)(f), map2LazyList(exhaustive, g.exhaustive)(map2Option(_, _)(f)))
@@ -353,4 +354,3 @@ object CoGen {
   def takeWhilePropInt = forAll(Gen.choose(-10, 10).list ** fn(cogenInt, Gen.boolean).unsized) { case (ys, f) => ys.takeWhile(f).forall(f) }
 
 }
-
