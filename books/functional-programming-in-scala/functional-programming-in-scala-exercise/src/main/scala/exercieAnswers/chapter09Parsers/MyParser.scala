@@ -79,6 +79,9 @@ object MyParser {
 
     def succeed[A](a: A): Parser[A] = _ => Success(a, 0)
 
+    // run the wrapped parser and upon success, return  a substring of the original input
+    // with length equal to # of consumed characters by the wrapper
+    // starting from current offset
     def slice[A](p: Parser[A]): Parser[String] = l => p(l) match {
       case Success(_, length) => Success(l.slice(length), length)
       case f@Failure(_, _) => f
@@ -94,7 +97,8 @@ object MyParser {
      * else if p1 fail in a committed state, fail early
      * */
     def or[A](p1: Parser[A], p2: => Parser[A]): Parser[A] = l => p1(l) match {
-      case Failure(_, false) => p2(l)
+      // addFailure to keep track of both or error
+      case Failure(e, false) => p2(l).mapError(_.addFailure(e))
       case r => r
     }
 

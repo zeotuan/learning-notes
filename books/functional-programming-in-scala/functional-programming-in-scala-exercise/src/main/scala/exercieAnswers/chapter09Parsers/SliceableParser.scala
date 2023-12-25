@@ -103,7 +103,7 @@ object SliceableTypes {
      * else if p1 fail in a committed state, fail early
      * */
     def or[A](p1: Parser[A], p2: => Parser[A]): Parser[A] = l => p1(l) match {
-      case Failure(_, false) => p2(l)
+      case Failure(e, false) => p2(l).mapError(_.addFailure(e))
       case r => r
     }
 
@@ -175,7 +175,14 @@ object SliceableTypes {
     override def product[A, B](p1: Parser[A], p2: Parser[B]): Parser[(A, B)] = map2(p1, p2)(_ -> _)
 
 
-    /** Improvement on original many to avoid stack overflow on large inputs */
+    /**
+     * Improvement on original many to avoid stack overflow on large inputs
+     * If the state indicates we're sliced, then use a recursive function and
+     * parse until failure without accumulating the result of iteration. if a failure
+     * with uncommited state is encountered, return a slice indicating # of consumed characters.
+     * It is safe to cast to `Result[List[A]]` since the result will not be inspected
+     * */
+
     override def many[A](p: Parser[A]): Parser[List[A]] = s => {
       if (s.isSliced) { // avoid building up List of char if it's sliced
         @tailrec

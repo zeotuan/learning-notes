@@ -253,14 +253,44 @@ case class Location(input: String, offset: Int = 0) {
 
   def slice(n: Int): String = input.substring(offset, offset + n)
 
+  def currentLine: String = if (input.length > 1)
+    input.linesIterator.drop(line - 1).next()
+  else
+    ""
+  def columnCaret = (" " * (col - 1)) + "^"
 }
 
-case class ParserError(stack: List[(Location, String)] = List()) {
+case class ParserError(stack: List[(Location, String)] = List(), otherFailures: List[ParserError] = Nil) {
   def label[A](s: String): ParserError = ParserError(latestLoc.map(_ -> s).toList)
 
   def latest: Option[(Location, String)] = stack.lastOption
   def latestLoc: Option[Location] = latest.map(_._1)
 
   def push(loc: Location, msg: String): ParserError = copy(stack = (loc, msg) :: stack)
+
+  /**
+   * use the groupBy function to create a `Map[Location, List[(Location, String)]]`
+   * concatenate each inner list error message into single `;` separated string
+   * then sort by where error happen in input string
+   * */
+  def collapseStack: List[(Location, String)] = stack
+    .groupBy(_._1)
+    .view
+    .mapValues(_.map(_._2).mkString("; "))
+    .toList.sortBy(_._1.offset)
+
+
+  override def toString: String = if (stack.isEmpty)
+    "no error message"
+  else {
+    lazy val collapsed = collapseStack
+    // context: the line of input that failed to parse along with a caret pointing to the character in that line where the error occurred
+    val context = collapsed.lastOption.map(e => "\n\n" + e._1.currentLine).getOrElse("") + collapsed.lastOption.map(e => "\n" + e._1.columnCaret).getOrElse("")
+    // print each error in the collapse along with the line and col the error occurred
+    collapsed.map { case (loc, msg) => loc.line.toString + "." + loc.col + " " + msg}.mkString("\n") + context
+  }
+
+  /** store other error occur when parsing */
+  def addFailure(e: ParserError): ParserError = copy(otherFailures = e::otherFailures)
 
 }
