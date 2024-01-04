@@ -1,6 +1,9 @@
 ﻿package exercieAnswers.chapter10Monoid
 
 import exercieAnswers.chapter08PropertyTesting._
+import exercieAnswers.chapter07Parallelism.NonBlockingPar._
+
+import exercieAnswers.chapter07Parallelism.NonBlockingPar.Par.toParOps
 
 /**
  * a monoid is a type together with a binary operation (combine) over that type, satisfying associativity and having an identity element (empty).
@@ -92,7 +95,7 @@ object Monoid {
     def combine(a1: A => A, a2: A => A): A => A = a1 andThen a2
     def empty: A => A = a => a
   }
-  /** endoMonoid but combine perform a1 compose a2 */
+  /** endoMonoid but combine perform a1 compse a2 */
   def endoMonoid[A]: Monoid[A => A] = dual(endoMonoid)
 
 
@@ -132,4 +135,108 @@ object Monoid {
    * */
   def foldLeft[A, B](as: List[A])(z: B)(f: (B, A) => B): B = foldMap(as, endoMonoid[B])(a => b => f(b, a))(z)
 
+  /**
+   * @param f - transform from A to B so monoid `m` can be applied
+   * Since monoid's operation is associative, we can use balanced fold with a monoid which is efficient
+   * for parallel computation:
+   * combine(a, combine(b, combine(c, d))) == combine(combine(combine(a, b), c), d) == combine(combine(a,b), combine(c,d))
+   *
+   *
+   * foldMap for IndexedSeq which split the sequence into two and recursively process each half and add
+   * them together with the monoid
+   * */
+  def foldMapV[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): B = if (as.isEmpty) {
+    m.empty
+  } else if (as.length == 1) {
+    f(as.head)
+  } else {
+    val (l,r) = as.splitAt(as.length/2)
+    m.combine(foldMapV(l, m)(f), foldMapV(r, m)(f))
+  }
+
+  def par[A](m: Monoid[A]): Monoid[Par[A]] = new Monoid[Par[A]] {
+    def combine(a1: Par[A], a2: Par[A]): Par[A] = a1.map2(a2)(m.combine)
+    def empty: Par[A] = Par.unit(m.empty)
+  }
+
+  /**
+   * Exercise 10.8: Implement parallel version of foldMap
+   * First map over f over as using parMap so it run in parallel
+   * then use foldMapV which supported balanced sequence with lifted monoid to parMonoid
+   */
+  def parFoldMap[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] = Par.parMap(as)(f).flatMap(foldMapV(_, par(m))(Par.lazyUnit))
+
+  /**
+   * Exercise 10.9
+   * This is a classical map-reduce problem
+   * we can split the array in half and check if each half is ordered
+   * additionally, we have make sure left half is smaller than right half (or greater)
+   * to do this, we keep track of min and max value of each half
+   * */
+  def ordered(ints: IndexedSeq[Int]): Boolean = {
+    case class Interval(ordered: Boolean, min: Int, max: Int)
+    val orderedMonoid = new Monoid[Option[Interval]] {
+      def combine(a1: Option[Interval], a2: Option[Interval]): Option[Interval] = (a1, a2) match {
+        case (Some(aa1), Some(aa2)) => Some(Interval(aa1.ordered && aa2.ordered && aa1.max < aa2.min, aa1.min, aa2.max))
+        case (x, None) => x
+        case (None, x) => x
+      }
+      def empty: Option[Interval] = None
+    }
+    foldMapV(ints, orderedMonoid)(i => Some(Interval(ordered = true, i, i))).forall(_.ordered)
+  }
+
+  sealed trait WC
+  /** case where we haven't seen any complete word yet*/
+  case class Stub(chars: String) extends WC
+
+  /**
+   * @param lStub partial word we've seen on the left
+   * @param words the number of complete words
+   * @param rStub partial word we've seen on the right
+   * */
+  case class Part(lStub: String, words: Int, rStub: String) extends WC
+
+  // Exercise 10.10: Implement Monoid instance for WC
+  val wcMonoid = new Monoid[WC] {
+
+    def combine(a1: WC, a2: WC): WC = (a1, a2) match {
+      case (Stub(c1), Stub(c2)) => Stub(c1 + c2)
+      case (Stub(c), Part(l, w, r)) => Part(c + l, w , r)
+      case (Part(l, w, r), Stub(c)) => Part(l, w, r + c)
+      case (Part(l1, w1, r1), Part(l2, w2, r2)) => Part(l1, w1 + w2 + (if ((r1 + l2).isEmpty) 0 else 1) , r2)
+    }
+
+    def empty: WC  = new Stub("")
+  }
+
+  def wcGen: Gen[WC] = {
+    val smallString = Gen.choose(0, 10).flatMap(Gen.stringN)
+    val genStub = smallString.map(Stub)
+    val genPart = for {
+      lStub <- smallString
+      words <- Gen.choose(0, 10)
+      rStub <- smallString
+    } yield Part(lStub, words, rStub)
+    Gen.union(genStub, genPart)
+  }
+  monoidLaws(wcMonoid, wcGen)
+
+  /** use wc monoid to count words in a string by recursively splitting it into substring then count word within each substring */
+  def count(s: String): Int = {
+    def unstub(s: String): Int = s.length min 1
+    foldMapV(s.toIndexedSeq, wcMonoid)(c => if (c.isWhitespace) Part("", 0, "") else Stub(c.toString)) match {
+      case Stub(cs) => unstub(cs)
+      case Part(l, w, r) => unstub(l) + w + unstub(r)
+    }
+  }
+
+  def foldMapG[A, B](as: List[A])(f: A => B)(implicit m: Monoid[B]): B = foldMap(as, m)(f)
+  def foldMapVG[A, B](as: IndexedSeq[A])(f: A => B)(implicit m: Monoid[B]): B = foldMapV(as, m)(f)
+
+  implicit val implicitIntMonoid: Monoid[Int] = intAddition
+
+  val charCount = foldMapG(List("aabr", "dada", "adada"))(_.length)
+
+  val allPositive = foldMapG(List(1,2,3))(_ > 0)(booleanOr)
 }
