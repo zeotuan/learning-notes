@@ -239,4 +239,31 @@ object Monoid {
   val charCount = foldMapG(List("aabr", "dada", "adada"))(_.length)
 
   val allPositive = foldMapG(List(1,2,3))(_ > 0)(booleanOr)
+
+
+  def productMonoid[A, B](a: Monoid[A], b: Monoid[B]): Monoid[(A, B)] = new Monoid[(A, B)] {
+    override def combine(a1: (A, B), a2: (A, B)): (A, B) = (a.combine(a1._1, a2._1), b.combine(a1._2, a2._2))
+
+    override def empty: (A, B) = (a.empty, b.empty)
+  }
+
+  def mapMergeMonoid[K, V](mv: Monoid[V]): Monoid[Map[K, V]] = new Monoid[Map[K, V]] {
+    override def combine(a1: Map[K, V], a2: Map[K, V]): Map[K, V] = (a1.keySet ++ a2.keySet).foldLeft(empty)(
+      (acc, k) => acc.updated(k, mv.combine(
+        a1.getOrElse(k, mv.empty),
+        a2.getOrElse(k, mv.empty)
+      ))
+    )
+
+    override def empty: Map[K, V] = Map()
+  }
+
+  /** Exercise 10.17: Write a monoid for functions whose result are monoids */
+  def functionMonoid[A, B](mb: Monoid[B]): Monoid[A => B] = new Monoid[A => B] {
+    override def combine(a1: A => B, a2: A => B): A => B = a => mb.combine(a1(a), a2(a))
+
+    override def empty: A => B = _ => mb.empty
+  }
+
+  def bag[A](as: IndexedSeq[A]): Map[A, Int] = foldMapV(as, mapMergeMonoid[A, Int](intAddition))(a => Map(a -> 1))
 }
