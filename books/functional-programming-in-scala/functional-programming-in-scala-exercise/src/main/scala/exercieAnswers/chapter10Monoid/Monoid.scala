@@ -5,6 +5,13 @@ import exercieAnswers.chapter07Parallelism.NonBlockingPar._
 
 import exercieAnswers.chapter07Parallelism.NonBlockingPar.Par.toParOps
 
+
+
+/** this semigroup trait must also conform to associativity law*/
+trait Semigroup[A] {
+  def combine(a1: A, a2: A): A //  Satisfies combine(combine(x, y), z) == combine(x, combine(y, z))
+}
+
 /**
  * a monoid is a type together with a binary operation (combine) over that type, satisfying associativity and having an identity element (empty).
  * a monoid consists of the following:
@@ -15,8 +22,7 @@ import exercieAnswers.chapter07Parallelism.NonBlockingPar.Par.toParOps
  *
  * - A value, empty:A that is an identity function for that operation: `combine(x, empty) == combine(empty, x)` for any x: A
  * */
-trait Monoid[A] {
-  def combine(a1: A, a2: A): A //  Satisfies combine(combine(x, y), z) == combine(x, combine(y, z))
+trait Monoid[A] extends Semigroup [A]{
   def empty: A // Satisfies combine(x, empty) == x and combine(empty, x) == x
 }
 
