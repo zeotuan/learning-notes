@@ -8,6 +8,7 @@ import exercieAnswers.chapter12Applicative.Applicative.validatedApplicative
 
 import java.sql.Date
 import java.time.LocalDate
+import scala.language.implicitConversions
 
 /**
  * Applicative computations have a fixed structure and simply sequence effects, whereas monadic computations may choose a structure dynamically based on result of previous effect
@@ -83,7 +84,10 @@ trait Applicative[F[_]] extends Functor[F] {
     }
   }
 
-
+  /** Exercise 12.12: Sequence over Map rather than List */
+  def sequenceMap[K, V](ofv: Map[K, F[V]]): F[Map[K, V]] = ofv.foldLeft(unit(Map.empty[K, V])) {
+    case (acc, (k, fv)) => map2(acc)(fv)((m, v) => m + (k -> v))
+  }
 }
 
 object Applicative {
@@ -104,6 +108,7 @@ object Applicative {
      * */
     def sequence[A](as: List[ZipList[A]]): ZipList[List[A]] = ???
 
+
     def assoc[A, B, C](p: (A, (B, C))): ((A, B), C) = p match {
       case (a, (b, c)) => ((a, b), c)
     }
@@ -118,6 +123,16 @@ object Applicative {
      * A cleaner implementation is to reimplement Invalid to take E
      *  */
     def map2[A, B, C](fa: Validated[E, A])(fb: Validated[E, B])(f: (A, B) => C)(implicit m: Monoid[List[E]]): Validated[E, C] = fa.map2(fb)(f)
+  }
+
+
+
+  type Const[M, B] = M
+
+  /** Turning a monoid into applicative */
+  implicit def monoidApplicative[M](m: Monoid[M]): Applicative[({type f[x] = Const[M, x]})#f] = new Applicative[({type f[x] = Const[M, x]})#f] {
+    override def unit[A](a: => A): M = m.empty
+    override def apply[A, B](fab: Const[M, A => B], fa: Const[M, A]): Const[M, B] = m.combine(fab, fa)
   }
 }
 
@@ -194,7 +209,17 @@ object Monad {
    *  fa.flatMap(a => fb.map(b => f(a) -> f(b)))
    * */
 
-
+  /** Excercise 12.20:
+   * composition of two monads where one of them is traversable:
+   * for two general monad, we would need to implement and operation that can perform `F[G[F[G[A]]]] => F[G[A]]`
+   * but if G happens to be a Traverse instance, then we can sequence to turn `G[F[_]]` into `F[G[_]]`
+   * leading to `F[F[G[G[A]]]]`. we can then join adjacent F and G layer using their respective Monad
+   * */
+  def composeM[G[_], H[_]](implicit g: Monad[G], h: Monad[H], t: Traverse[H]): Monad[({type f[x] = G[H[x]]})#f] =
+    new Monad[({type f[x] = G[H[x]]})#f] {
+      override def unit[A](a: => A): G[H[A]] = g.unit(h.unit(a))
+      override def flatMap[A, B](mna: G[H[A]])(f: A => G[H[B]]): G[H[B]] = g.flatMap(mna)(na => g.map(t.traverse(na)(f))(h.join))
+    }
 }
 
 object Example {

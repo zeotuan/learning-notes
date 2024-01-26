@@ -7,6 +7,7 @@ import exercieAnswers.chapter07Parallelism.NonBlockingPar.Par.toParOps
 import exercieAnswers.chapter09Parsers.Parsers
 import exercieAnswers.chapter09Parsers.SliceableTypes.Parser
 import exercieAnswers.chapter11Monad.Monad.stateMonad
+import exercieAnswers.chapter12Applicative.Applicative
 
 import scala.annotation.tailrec
 
@@ -52,18 +53,18 @@ object Functor {
  * all of the derived operations (or combinators) in exchange for implementing one of the minimal sets
  * of monadic combinators.
  * */
-trait Monad[F[_]] extends Functor[F] {
+trait Monad[F[_]] extends Functor[F] with Applicative[F] {
   /** since flatMap is implemented in term of join and vice versa, one of them need to be overridden to avoid infinite loop */
   def flatMap[A, B](fa: F[A])(f: A => F[B]): F[B] = join(map(fa)(f))
   def unit[A](a: => A): F[A]
-  def map2[A, B, C](fa: F[A])(fb: F[B])(f: (A, B) => C): F[C] = flatMap(fa)(a => map(fb)(b => f(a,b)))
+  override def map2[A, B, C](fa: F[A])(fb: F[B])(f: (A, B) => C): F[C] = flatMap(fa)(a => map(fb)(b => f(a,b)))
   override def map[A, B](fa: F[A])(f: A => B): F[B] = flatMap(fa)(a => unit(f(a)))
 
 
 
   // Exercise 11.3 Implement other common function
-  def sequence[A](fas: List[F[A]]): F[List[A]] = traverse(fas)(identity)
-  def traverse[A, B](as: List[A])(f: A => F[B]): F[List[B]] = as.foldRight(unit(List.empty[B]))((a, b) => map2(f(a))(b)(_ :: _))
+  override def sequence[A](fas: List[F[A]]): F[List[A]] = traverse(fas)(identity)
+  override def traverse[A, B](as: List[A])(f: A => F[B]): F[List[B]] = as.foldRight(unit(List.empty[B]))((a, b) => map2(f(a))(b)(_ :: _))
 
   // traverse can also be implemented via sequence
   // But it can cause infinite loop
@@ -72,9 +73,9 @@ trait Monad[F[_]] extends Functor[F] {
 
   /** repeats the supplied nomadic value n times, combining the results into a single value,
    * where the nomadic type defines how that combinations is performed */
-  def replicateM[A](n: Int, fa: F[A]): F[List[A]] = sequence(List.fill(n)(fa))
+  override def replicateM[A](n: Int, fa: F[A]): F[List[A]] = sequence(List.fill(n)(fa))
 
-  def product[A, B](fa: F[A])(fb: F[B]): F[(A, B)] = map2(fa)(fb)(_ -> _)
+  override def product[A, B](fa: F[A])(fb: F[B]): F[(A, B)] = map2(fa)(fb)(_ -> _)
 
   /** Exercise 11.6: */
   def filterM[A](as: List[A])(f: A => F[Boolean]): F[List[A]] = as.foldRight(unit(List.empty[A]))((a, acc) => flatMap(f(a))(b => if (b) map2(unit(a))(acc)(_ :: _) else acc))

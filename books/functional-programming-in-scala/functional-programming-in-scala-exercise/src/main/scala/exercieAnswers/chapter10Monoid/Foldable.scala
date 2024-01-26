@@ -9,6 +9,9 @@ import exercieAnswers.chapter03DataStructures.{Tree, Leaf, Branch}
  * This leave no abstract implementation left
  * However, when extending Foldable,
  * we should reimplement either foldLeft or foldMap to avoid infinite loop
+ *
+ *
+ * 
  *  */
 trait Foldable[F[_]] {
   import Monoid._
