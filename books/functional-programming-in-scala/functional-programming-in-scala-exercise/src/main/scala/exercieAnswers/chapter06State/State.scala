@@ -4,14 +4,11 @@ import scala.annotation.tailrec
 
 trait RNG {
   def nextInt: (Int, RNG)
-
   def randomPair(rng: RNG): ((Int, Int), RNG) = {
     val (i1, rng2) = rng.nextInt
     val (i2, rng3) = rng2.nextInt
     ((i1, i2), rng3)
   }
-
-
 }
 
 object RNG {
@@ -23,7 +20,6 @@ object RNG {
       (n, nextRNG)
     }
   }
-
 
   // using the same Simple to create pseudo random number
   // will always generate the same number
@@ -86,8 +82,8 @@ object RNG {
   // function follow this form RNG => (A, RNG) are called state actions or state transition
   // since we will be repeat this form alots, it's good practice to define a type alias for it
   type Rand[+A] = RNG => (A, RNG)
-  val int: Rand[Int] = _.nextInt
-  def unit[A](a: A): Rand[A] = (a, _)
+  val int: Rand[Int] = _.nextInt // short hand for rng => rng.nextInt
+  def unit[A](a: A): Rand[A] = (a, _) // short hand for rng => (a, rng)
 
   def  map[A, B](s: Rand[A])(f: A => B): Rand[B] = rng => {
     val (a, r) = s(rng)
@@ -142,7 +138,7 @@ object RNG {
   def nonNegativeLessThanViaFlatMap(n: Int): Rand[Int] = flatMap(nonNegative)(i => {
     val mod = i%n
     if (i + (n - 1) - mod >= 0)
-     unit(mod)
+      unit(mod)
     else
       nonNegativeLessThanViaFlatMap(n)
   })
@@ -156,7 +152,6 @@ object RNG {
 import State._
 case class State[S, +A](run: S => (A, S)) {
   // Exercise 6.10: Implement unit, map, map2, flatMap, sequence
-
  def  map[B](f: A => B): State[S, B] = flatMap(a => unit(f(a)))
   def map2[B, C](sb: State[S, B])(f: (A, B) => C): State[S, C] = flatMap(a => sb.map(b => f(a,b)))
   def flatMap[B](f: A => State[S, B]): State[S, B] = State(s => {
@@ -165,7 +160,6 @@ case class State[S, +A](run: S => (A, S)) {
     val (a, s1) = run(s)
     f(a).run(s1)
   })
-
 }
 
 object State {

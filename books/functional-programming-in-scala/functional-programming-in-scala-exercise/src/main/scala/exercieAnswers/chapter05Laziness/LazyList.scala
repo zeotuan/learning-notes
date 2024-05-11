@@ -5,6 +5,8 @@ import exercieAnswers.chapter05Laziness.LazyList.{cons, empty, fib, unfold}
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
+case object Empty extends LazyList[Nothing]
+case class Cons[+A](head: () => A, tail: () => LazyList[A]) extends LazyList[A]
 sealed trait LazyList[+A] {
   def headOption: Option[A] = this match {
     case Empty => None
@@ -78,7 +80,7 @@ sealed trait LazyList[+A] {
   def forAll(p: A => Boolean): Boolean = foldRight(true)((a,b) => p(a) && b)
 
   // Exercise 5.5: Implement takeWhile using foldRight
-  def takeWhileViaFoldRight(p: A => Boolean): LazyList[A] = foldRight(empty)((a, b) => if (p(a)) {cons(a, b)} else empty)
+  def takeWhileViaFoldRight(p: A => Boolean): LazyList[A] = foldRight(empty)((a, b) => if (p(a)) cons(a, b) else empty)
 
   // Exercise 5.6: Implement headOption
   def headOptionViaFoldRight: Option[A] = foldRight(None: Option[A])((a, _) => Some(a))
@@ -163,11 +165,7 @@ sealed trait LazyList[+A] {
   })._2
 
   // LazyList(1, 2, 3).scanRight(0)(_ + _).toList
-
-
 }
-case object Empty extends LazyList[Nothing]
-case class Cons[+A](head: () => A, tail: () => LazyList[A]) extends LazyList[A]
 
 object LazyList {
   // Smart constructor for LazyList
@@ -227,10 +225,10 @@ object LazyList {
   }
 
   // We can also implement unfold using build in fold which apply f to Option if value is not None
-  def unfoldViaFold[A,S](state: S)(f: S => Option[(A,S)]): LazyList[A] = f(state).fold(empty)(p => cons(p._1, unfold[A,S](p._2)(f)))
-  def unfoldViaFold[A,S](state: S)(f: S => Option[(A,S)]): LazyList[A] = f(state).map(p => cons(p._1, unfold[A,S](p._2)(f))).getOrElse(empty)
+  def unfoldViaFold[A,S](state: S)(f: S => Option[(A,S)]): LazyList[A] = f(state).fold(empty)(p => cons(p._1, unfoldViaFold[A,S](p._2)(f)))
+  def unfoldViaFold_[A,S](state: S)(f: S => Option[(A,S)]): LazyList[A] = f(state).map(p => cons(p._1, unfoldViaFold_[A,S](p._2)(f))).getOrElse(empty)
 
-  // Exercise 5.12: Implement fib, from continually  and ones via unfold
+  // Exercise 5.12: Implement fib, from, continually  and ones via unfold
   def fibsViaUnfold: LazyList[Int] = unfold((0, 1)) {
     case (curr, next) => Some((curr, (next, curr + next)))
   }
@@ -238,9 +236,6 @@ object LazyList {
   def fromViaUnfold(n: Int): LazyList[Int] = unfold(n)(now => Some((now, now+1)))
   def continuallyViaUnfold[A](a: A): LazyList[A] = unfold(())(_ => Some(a, ()))
   def oneViaUnfold: LazyList[Int] = continuallyViaUnfold(1)
-
-
-
 }
 
 

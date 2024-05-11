@@ -59,9 +59,11 @@ object Par {
     }
   }
 
-  // Exercise 7.4:
-  def lazyList[A](a: => A):Par[A] = fork(unit(a))
-  def asyncF[A, B](f: A => B): A => Par[B] = a => lazyList(f(a))
+  def lazyUnit[A](a: => A):Par[A] = fork(unit(a))
+
+
+  /** Exercise 7.4: Write a function to convert any function A => B to one that evaluates it result asynchronously */
+  def asyncF[A, B](f: A => B): A => Par[B] = a => lazyUnit(f(a))
 
   // without having to run parList we can use map2 to directly gain access to List within Par
   def sortPar(parList: Par[List[Int]]): Par[List[Int]] = map2(parList, unit(()))((a, _) => a.sorted)
@@ -97,14 +99,14 @@ object Par {
   // thread instead of being performed immediately on the
   // calling thread when parMap is called
   def parMap[A, B](ps: List[A])(f: A => B): Par[List[B]] = fork(e => {
-    val fbs: List[Par[B]] = ps.map(asyncF(f)(_))
+    val fbs: List[Par[B]] = ps.map(asyncF(f))
     sequence(fbs)(e)
   })
 
 
   // Exercise 7.6: Implement parFilter
   // easy Implementation but all filtering is done on the same thread
-  def parSameThreadFilter[A](as: List[A])(f: A => Boolean): Par[List[A]] = lazyList(as.filter(f))
+  def parSameThreadFilter[A](as: List[A])(f: A => Boolean): Par[List[A]] = lazyUnit(as.filter(f))
   def parFilter[A](as: List[A])(f: A => Boolean): Par[List[A]] = fork(e => {
     val pars = as.map(asyncF(a => if (f(a)) List(a) else Nil))
     map(sequence(pars))(_.flatten)(e)
@@ -114,17 +116,20 @@ object Par {
   def equal[A](p: Par[A], p2: Par[A]): Par[Boolean] = Par.map2(p, p2)(_ == _)
   def equal[A](e: ExecutorService)(p: Par[A], p2: Par[A]): Boolean = equal(p, p2)(e).get
   assert(map(unit(1))(_ + 1) == unit(2))
-  // unit(1).map(_ + 1) == unit(2)
-  // unit(x).map(f) == unit(f(x))
-  // unit(x).map(id) == unit(id(x)) - substitute f with identity function
-  // unit(x).map(id) == unit(x)     - simplify
-  // y.map(id) == y                 - substitute unit(x) with y
 
-  // Exercise 7.7: prove that y.map(g).map(f) == y.map(f compose g)
-  // y.map(id).map(f compose g) == y.map((f compose g) compose id)  - substitute (f -> id) and (g -> f compose g)
-  // y.map(id).map(f compose g)  == y.map(f compose g)
-  // y.map(f compose g) == y.map(f compose g)
+  /**
+   * unit(1).map(_ + 1) == unit(2)
+   * unit(x).map(f) == unit(f(x))
+   * unit(x).map(id) == unit(id(x)) // substitute f with identity function
+   * unit(x).map(id) == unit(x)     // simplify
+   * y.map(id) == y                 // substitute unit(x) with y
+   */
 
+  /**  Exercise 7.7: prove that y.map(g).map(f) == y.map(f compose g)
+   * y.map(id).map(f compose g) == y.map((f compose g) compose id)  - substitute (f -> id) and (g -> f compose g)
+   * y.map(id).map(f compose g)  == y.map(f compose g)
+   * y.map(f compose g) == y.map(f compose g)
+   */
 
   /**
    * Exercise 7.8: our implementation doesn't work work with FixedThreadPool when there is only 1 thread
