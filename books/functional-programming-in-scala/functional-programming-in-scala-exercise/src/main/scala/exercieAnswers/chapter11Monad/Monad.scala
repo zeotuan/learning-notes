@@ -5,11 +5,8 @@ import exercieAnswers.chapter08PropertyTesting._
 import exercieAnswers.chapter07Parallelism.NonBlockingPar._
 import exercieAnswers.chapter07Parallelism.NonBlockingPar.Par.toParOps
 import exercieAnswers.chapter09Parsers.Parsers
-import exercieAnswers.chapter09Parsers.SliceableTypes.Parser
 import exercieAnswers.chapter11Monad.Monad.stateMonad
 import exercieAnswers.chapter12Applicative.Applicative
-
-import scala.annotation.tailrec
 
 /**
  * a functor is an impplementation of map that preserve the structure of the data type
@@ -201,6 +198,11 @@ trait Monad[F[_]] extends Functor[F] with Applicative[F] {
    * or decrease the number of elements (e.g., by applying the supplied function multiple times to each element before joining the results).
    *
    * */
+
+
+  /** From IO chapter */
+
+  def **[A, B](fa: F[A])(fb: F[B]): F[(A, B)] = map2(fa)(fb)((_, _))
 }
 
 case class Reader[R, A](run: R => A)

@@ -248,6 +248,10 @@ object Gen {
     (f, rng2)
   }), unbounded)
 
+  def stringN(n: Int): Gen[String] = listOfN(n, choose(0, 127)).map(_.map(_.toChar).mkString)
+
+  val string: SGen[String] = SGen(stringN)
+
 }
 
 
