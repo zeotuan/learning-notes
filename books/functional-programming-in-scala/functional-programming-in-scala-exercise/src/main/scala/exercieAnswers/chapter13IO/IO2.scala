@@ -6,7 +6,8 @@ object IO2 {
 
   /**
    * Instead of recursive call to unsafeRun, we create a data structure
-   * which allow us to passed back the control flow and write our own interpreter
+   * which allow us to passed back the control flow and write our own interpreter.
+   * A more generalize implementation that not only concerning IO is [[TailRec]]
    * */
   sealed trait IO[A] {
     def flatMap[B](f: A => IO[B]): IO[B] = FlatMap(this, f)
