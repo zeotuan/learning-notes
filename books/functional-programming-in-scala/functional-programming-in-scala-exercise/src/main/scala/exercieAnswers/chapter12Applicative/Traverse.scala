@@ -9,7 +9,7 @@ import exercieAnswers.chapter12Applicative.Applicative.{Const, monoidApplicative
 import scala.annotation.tailrec
 
 /**
- * Traversable functos let us compose applicative effect with various iterations patterns, avoiding
+ * Traversable functor let us compose applicative effect with various iterations patterns, avoiding
  * the need to write specialized logic for each effect
  *
  * a traversable instance is defined by providing implementations of either `traverse` or both `map` and `sequence`

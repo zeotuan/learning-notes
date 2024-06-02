@@ -97,4 +97,31 @@ object FreeTest {
 
     override def toThunk: () => Unit = () => println(line)
   }
+
+  object Console {
+    def readLn: Free[Console, Option[String]] = Suspend(ReadLine)
+    def printLn(line: String): Free[Console, Unit] = Suspend(PrintLine(line))
+
+    /**
+     * To run a [[Console]] Program, we need a Monad[Console] but since it's impossible to implement flatMap
+     * for [[Console]], we need a way to translate our Console type to other supported type(either [[Function0]] or [[Par]]).
+     * We introduce the following type to do this translation:
+    */
+
+    /** Translate between any F[A] to G[A] */
+    trait Translate[F[_], G[_]] { def apply[A](f: F[A]): G[A] }
+    /** infix syntax F ~> G for Translate[F,G] */
+    type ~>[F[_], G[_]] = Translate[F, G]
+
+    val consoleToFunction0 = new (Console ~> Function0) { def apply[A](a: Console[A]) = a.toThunk }
+    val consoleToPar = new (Console ~> Par) { def apply[A](a: Console[A]) = a.toPar }
+
+    def runFree[F[_], G[_], A](free: Free[F, A])(t: F ~> G) (implicit G: Monad[G]): G[A] = free.step match {
+      case Return(a) => G.unit(a)
+      case Suspend(r) => t(r)
+      case FlatMap(Suspend(r), f) => G.flatMap(t(r))(a => runFree(f(a))(t))
+      case _ => sys.error("Impossible as step has eliminated all other cases")
+    }
+
+  }
 }
