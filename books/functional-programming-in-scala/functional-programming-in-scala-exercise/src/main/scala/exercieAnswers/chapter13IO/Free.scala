@@ -1,6 +1,7 @@
 ﻿package exercieAnswers.chapter13IO
 
 import exercieAnswers.chapter07Parallelism.NonBlockingPar.Par
+import exercieAnswers.chapter13IO.Free.{freeMonad, runTrampoline}
 
 import scala.annotation.tailrec
 import scala.io.StdIn.readLine
@@ -113,14 +114,69 @@ object FreeTest {
     /** infix syntax F ~> G for Translate[F,G] */
     type ~>[F[_], G[_]] = Translate[F, G]
 
-    val consoleToFunction0 = new (Console ~> Function0) { def apply[A](a: Console[A]) = a.toThunk }
-    val consoleToPar = new (Console ~> Par) { def apply[A](a: Console[A]) = a.toPar }
+    val consoleToFunction0 = new (Console ~> Function0) { def apply[A](a: Console[A]): () => A = a.toThunk }
+    val consoleToPar = new (Console ~> Par) { def apply[A](a: Console[A]): Par[A] = a.toPar }
 
     def runFree[F[_], G[_], A](free: Free[F, A])(t: F ~> G) (implicit G: Monad[G]): G[A] = free.step match {
       case Return(a) => G.unit(a)
       case Suspend(r) => t(r)
       case FlatMap(Suspend(r), f) => G.flatMap(t(r))(a => runFree(f(a))(t))
       case _ => sys.error("Impossible as step has eliminated all other cases")
+    }
+
+    implicit val function0Monad = new Monad[Function0] {
+      override def flatMap[A, B](a: () => A)(f: A => () => B): () => B = () => f(a())()
+      override def unit[A](a: => A): () => A = () => a
+    }
+
+    implicit val ParMonad = new Monad[Par] {
+      override def unit[A](a: => A): Par[A] = Par.unit(a)
+      override def flatMap[A, B](a: Par[A])(f: A => Par[B]): Par[B] = Par.fork { Par.flatMap(a)(f) }
+    }
+
+    def runConsoleFunction0[A](a: Free[Console, A]): () => A = runFree[Console, Function0, A](a)(consoleToFunction0)
+    def runConsolePar[A](a: Free[Console, A]): Par[A] = runFree[Console, Par, A](a)(consoleToPar)
+
+    /**
+     * The [[runConsoleFunction0]] implementation is unfortunately not stack safe,
+     * because it relies of the stack safety of the underlying monad, and the
+     * [[Function0]] monad we gave is not stack safe.
+     *
+     * 13.4: Implement runConsole using runFree:
+     * Previously we were converting from Free[F,A] into H[A] for some constructor H
+     * However this did not make use of Free which make runFree unsafe if flatMap implementation is not stackSafe
+     * If we take H[A] = Free[G, A], we meed polymorphic function to convert from F[A] to Free[G,A]
+     * Which can be implemented by Suspending the  result of translating F[A] to G[A]
+     * To fix this, we must convert from Free[F, A] => Free[G, A]
+     *
+     * This allow use to make use of [[freeMonad]] instead and keep runConsole stacksafe
+     */
+    def translate[F[_],G[_],A](f: Free[F,A])(fg: F ~> G): Free[G,A] = {
+      type H[A] = Free[G,A]
+      val t = new (F ~> H) {
+        def apply[A](a: F[A]): Free[G,A] = Suspend { fg(a) }
+      }
+      runFree(f)(t)(freeMonad[G])
+    }
+
+    def refinedRunConsoleFunction0[A](a: Free[Console, A]): A = runTrampoline(translate(a)(consoleToFunction0))
+
+    /**
+     * Free[Console, A] doesn't require us to interpret Console using side effects.
+     * The decision is entirely responsibility of the interpreter.
+     * We can choose an interpreter which produce a side effect or not:
+     *  */
+
+    case class ConsoleReader[A](run: String => A) {
+      def map[B](f: A => B): ConsoleReader[B] = ConsoleReader(run andThen f)
+      def flatMap[B](f: A => ConsoleReader[B]): ConsoleReader[B] =  ConsoleReader(r => f(run(r)).run(r))
+    }
+
+    object ConsoleReader {
+      implicit val monad = new Monad[ConsoleReader] {
+        override def unit[A](a: => A): ConsoleReader[A] = ConsoleReader(_ => a)
+        override def flatMap[A, B](a: ConsoleReader[A])(f: A => ConsoleReader[B]): ConsoleReader[B] = a flatMap f
+      }
     }
 
   }
