@@ -2,6 +2,7 @@
 
 import exercieAnswers.chapter07Parallelism.NonBlockingPar.Par
 import exercieAnswers.chapter13IO.Free.{freeMonad, runTrampoline}
+import exercieAnswers.chapter13IO.FreeTest.Console.{ConsoleReader, _}
 
 import scala.annotation.tailrec
 import scala.io.StdIn.readLine
@@ -86,17 +87,40 @@ object FreeTest {
 
     /** Interpret [[Console]] as [[Function0]] */
     def toThunk: () => A
+
+    /** Interpret [[Console]] as [[ConsoleReader]] */
+    def toReader: ConsoleReader[A]
+
+    /** Interpret [[Console]] as [[ConsoleState]] */
+    def toState: ConsoleState[A]
   }
 
   case class ReadLine() extends Console[Option[String]] {
     override def toPar: Par[Option[String]] = Par.lazyUnit(Try(readLine()).toOption)
 
     override def toThunk: () => Option[String] = () => Try(readLine()).toOption
+
+    override def toReader: ConsoleReader[Option[String]] = ConsoleReader(in => Some(in))
+
+    /** When [[ReadLine]] is encountered pop an element off the input buffer */
+    override def toState: ConsoleState[Option[String]] = ConsoleState { buffer =>
+      buffer.in match {
+        case List() => (None, buffer)
+        case h :: t => (Some(h), buffer.copy(in = t))
+      }
+
+    }
   }
   case class PrintLine(line: String) extends Console[Unit] {
     override def toPar: Par[Unit] = Par.lazyUnit(println(line))
 
     override def toThunk: () => Unit = () => println(line)
+
+    override def toReader: ConsoleReader[Unit] = ConsoleReader(_ => ())
+
+    /** When [[ReadLine]] is encountered put into output buffer */
+    override def toState: ConsoleState[Unit] = ConsoleState { buffer => ((), buffer.copy(out  = buffer.out :+ line))}
+
   }
 
   object Console {
@@ -164,8 +188,9 @@ object FreeTest {
     /**
      * Free[Console, A] doesn't require us to interpret Console using side effects.
      * The decision is entirely responsibility of the interpreter.
-     * We can choose an interpreter which produce a side effect or not:
-     *  */
+     * We can choose an interpreter which produce a side effect or not
+     * Here we implement pure ConsoleIO without side effect using [[ConsoleReader]] and [[ConsoleState]]
+     * */
 
     case class ConsoleReader[A](run: String => A) {
       def map[B](f: A => B): ConsoleReader[B] = ConsoleReader(run andThen f)
@@ -173,11 +198,76 @@ object FreeTest {
     }
 
     object ConsoleReader {
-      implicit val monad = new Monad[ConsoleReader] {
+      implicit val monad: Monad[ConsoleReader] = new Monad[ConsoleReader] {
         override def unit[A](a: => A): ConsoleReader[A] = ConsoleReader(_ => a)
         override def flatMap[A, B](a: ConsoleReader[A])(f: A => ConsoleReader[B]): ConsoleReader[B] = a flatMap f
       }
     }
 
+    def consoleToReader = new (Console ~> ConsoleReader) {
+      def apply[A](f: Console[A]): ConsoleReader[A] = f.toReader
+    }
+
+    def runConsoleReader[A](io: Free[Console,A]): ConsoleReader[A] = runFree[Console, ConsoleReader, A](io)(consoleToReader)
+
+    case class Buffers(in: List[String], out: List[String])
+
+    case class ConsoleState[A](run: Buffers => (A, Buffers)) {
+      def map[B](f: A => B): ConsoleState[B] = ConsoleState { s =>
+        val (a, s1) = run(s)
+        (f(a), s1)
+      }
+
+      def flatMap[B](f: A => ConsoleState[B]): ConsoleState[B] = ConsoleState { s =>
+        val (a, s1) = run(s)
+        f(a).run(s1)
+      }
+    }
+
+    object ConsoleState {
+      implicit val monad: Monad[ConsoleState] = new Monad[ConsoleState] {
+        override def unit[A](a: => A): ConsoleState[A] = ConsoleState(s => (a, s))
+
+        override def flatMap[A, B](a: ConsoleState[A])(f: A => ConsoleState[B]): ConsoleState[B] = a flatMap f
+      }
+    }
+
+    def consoleToState = new (Console ~> ConsoleState) {
+      def apply[A](f: Console[A]): ConsoleState[A] = f.toState
+    }
+
+    def runConsoleState[A](io: Free[Console, A]): ConsoleState[A] = runFree[Console, ConsoleState, A](io)(consoleToState)
+
+    /**
+     * To reiterate, Free[F, A] is not specific to IO.
+     * the interpreter runFree get to choose how to interpret the `F` request,
+     * and whether to do perform real I/O or side effects
+     *
+     * when runConsole encounter a [[Suspend(s)]], s will be of type Console And we'll
+     * have translation f from console to the target Monad. we can choose to either use
+     * [[Par]] or [[scala.concurrent.Future]] to allow non blocking async IO or [[Function0]]
+     * for blocking just like how we can choose to have side effects or not.
+     *
+     * It can be thought of as a kind of compilation where we replace abstract Console with a
+     * more concrete implementation.
+     * */
+
+
+    /** Simple non blocking I/O */
+    trait Source {
+      def readBytes(
+        numBytes: Int,
+        callback: Either[Throwable, Array[Byte]] => Unit): Unit
+    }
+
+    def nonblockingRead(source: Source, numBytes: Int): Par[Either[Throwable, Array[Byte]]] =
+      Par.async { (cb: Either[Throwable, Array[Byte]] => Unit) => source.readBytes(numBytes, cb) }
+
+    def readPar(source: Source, numBytes: Int): Free[Par, Either[Throwable, Array[Byte]]] =
+      Suspend(nonblockingRead(source, numBytes))
+
+    type IO[A] = Free[Par, A]
+    def async[A](cb: (A => Unit) => Unit): IO[A] = Suspend(Par.async(cb))
+    def IO[A](a: => A): Free[Par, A] = Suspend { Par.delay(a) }
   }
 }
