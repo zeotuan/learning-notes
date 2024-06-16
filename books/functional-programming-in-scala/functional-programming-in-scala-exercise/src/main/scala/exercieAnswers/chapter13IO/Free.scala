@@ -4,6 +4,8 @@ import exercieAnswers.chapter07Parallelism.NonBlockingPar.Par
 import exercieAnswers.chapter13IO.Free.{freeMonad, runTrampoline}
 import exercieAnswers.chapter13IO.FreeTest.Console.{ConsoleReader, _}
 
+import java.nio.ByteBuffer
+import java.nio.channels.{AsynchronousFileChannel, CompletionHandler}
 import scala.annotation.tailrec
 import scala.io.StdIn.readLine
 import scala.util.Try
@@ -253,6 +255,20 @@ object FreeTest {
      * */
 
 
+    def greet: Free[Console, Unit] = {
+      for {
+        _ <- printLn("What your Name")
+        n <- readLn
+        _ <- n match {
+          case Some(n) => printLn(s"Hello, $n!")
+          case None => printLn(s"Fine, be that way.")
+        }
+      } yield ()
+    }
+
+    val test = runConsoleFunction0(greet)
+
+
     /** Simple non blocking I/O */
     trait Source {
       def readBytes(
@@ -269,5 +285,22 @@ object FreeTest {
     type IO[A] = Free[Par, A]
     def async[A](cb: (A => Unit) => Unit): IO[A] = Suspend(Par.async(cb))
     def IO[A](a: => A): Free[Par, A] = Suspend { Par.delay(a) }
+
+    def read(file: AsynchronousFileChannel,
+             fromPosition: Long,
+             numBytes: Int): Par[Either[Throwable, Array[Byte]]] = Par.async {
+      (cb: Either[Throwable, Array[Byte]] => Unit) =>
+        val buf = ByteBuffer.allocate(numBytes)
+        file.read(buf, fromPosition, (), new CompletionHandler[Integer, Unit] {
+          def completed(bytesRead: Integer, ignore: Unit) = {
+            val arr = new Array[Byte](bytesRead)
+            buf.slice.get(arr, 0, bytesRead)
+            cb(Right(arr))
+          }
+
+          def failed(err: Throwable, ignore: Unit) =
+            cb(Left(err))
+        })
+    }
   }
 }
