@@ -3,7 +3,9 @@
 import Pull._
 import exercieAnswers.chapter10Monoid.Monoid
 import exercieAnswers.chapter13IO.Monad
+import exercieAnswers.chapter13IO.FreeTest.Console.IO
 
+import java.nio.file.{Files, Paths}
 import scala.annotation.tailrec
 
 /**
@@ -90,6 +92,7 @@ trait Pull[+O, +R] {
   }
 
   def filter(p: O => Boolean): Pull[O, R] = uncons.flatMap {
+
     case Left(r) => Result(r)
     case Right((hd, tl)) => (if (p(hd)) Output(hd) else done) >> tl.filter(p)
   }
@@ -206,7 +209,7 @@ object Pull {
       (newWindow, newWindowMean)
   }.map(_._2)
 
-  /** flatMap with Result constructor form a monad instance for `[x] =>> Pull[O,  x]`*/
+  /** ResultMonad: flatMap with Result constructor form a monad instance for `[x] =>> Pull[O,  x]`*/
   implicit def monad[O]: Monad[({ type p[x] = Pull[O, x] })#p] = new [({ type p[x] = Pull[O, x] })#p] {
     def unit[A](a: => A): Pull[O, A] = Result(a)
     def flatMap[A, B](p: Pull[O, A])(f: A => Pull[O, B]): Pull[O, B] = p.flatMap(f)
@@ -226,7 +229,38 @@ object Pull {
     case Right((hd, tl)) => f(hd) >> flatMapOutput(tl)(f)
   }
 
+  implicit class PullOps[O](self: Pull[O, Unit]) {
+    def toStream: Stream[O] = self
+  }
 
+  /**
+   * Pull let us describe arbitrarily complex data sources in terms of monadic recursion
+   * Stream us collection like API that operates on individual element output by Pull
+   *
+   * In scala 3 we would be able to bind flatMapOutPut and mapOutput to flatMap and Map
+   * of Stream using opaque type and given. THis might be possible to create a wrapper around
+   * Pull but we will need to reimplement a lot of wrapper for pull implementation
+   * */
+  type Stream[+O] = Pull[O, Unit]
+  object Stream extends Monad[Stream]{
+    def apply[O](os: O*): Stream[O] = Pull.fromList(os.toList)
+
+    implicit class StreamOps[O](self: Stream[O]) {
+      def toPull: Pull[O, Unit] = self
+
+      def fold[A](init: A)(f: (A, O) => A):  A = self.fold(init)(f)._2
+
+      def toList: List[O] = self.toList
+
+      def take(n: Int): Stream[O] =  monad.void(self.take(n)) // self.take(n).map(_ => ())
+
+      def ++(that: => Stream[O]): Stream[O] = self >> that
+    }
+    def unit[A](a: => A): Stream[A] = Output(a).toStream
+    def flatMap[A, B](a: Stream[A])(f: A => Stream[B]): Stream[B] = flatMapOutput(a)(f)
+  }
+
+  type Pipe[-I, O] = Stream[I] => Stream[O]
 }
 
 object PullExamnple {
@@ -238,4 +272,91 @@ object PullExamnple {
   val ints = Pull.iterate(0)(_ + 1) // FlatMap(Output(0), _ => Output(0 + 1), ....)
   val firstFive = ints.take(5).toList // List(0, 1, 2, 3, 4)
 
+  val nonEmpty: Pipe[String, String] = _.filter(_.nonEmpty)
+
+  val lowerCase: Pipe[String, String] = _.mapOutput(_.toLowerCase())
+
+  val normalize: Pipe[String, String] = nonEmpty andThen lowerCase
+
+  val lines: Stream[String] = Stream("Hello", " ", "World!")
+  val normalized: Stream[String] = normalize(lines)
+
+  import scala.util.chaining.scalaUtilChainingOps
+  val normalized2: Stream[String] = lines.pipe(normalize)
+  val normalized3: Stream[String] = lines.pipe(nonEmpty).pipe(lowerCase)
+
+  /** 5.17: Non halting version which map all element to boolean and apply logical Or on each subsequent element */
+  def exists[I](f: I => Boolean): Pipe[I, Boolean] = _.mapOutput(o => f(o)).tally(Monoid.booleanOr)
+
+
+  def takeThrough[I](f: I => Boolean): Pipe[I, I] = src => monad.void(src.takeWhile(f).flatMap(_.take(1)))
+
+  def dropWhileStream[I](f: I => Boolean): Pipe[I, I] = src => monad.void(src.dropWhile(f).flatMap(identity))
+
+  /** We can use [[takeThrough]] and [[dropWhileStream]] to implement the halting version of exist */
+  def existHalting[I](f: I => Boolean): Pipe[I, Boolean] =  exists(f) andThen takeThrough(!_) andThen dropWhileStream(!_)
+
+  /** output the last value of a pull */
+  def last[I](init: I): Pipe[I, I] = {
+    def go(value:I, p: Stream[I]): Stream[I] = p.uncons.flatMap {
+      case Left(_) => Output(value)
+      case Right((hd, tl)) => go(hd, tl)
+    }
+    src => go(init, src)
+  }
+
+  /** use [[last]] instead of [[dropWhileStream]] to implement exist halting */
+  def existHalting2[I](f: I => Boolean): Pipe[I, Boolean] =  exists(f) andThen takeThrough(!_) andThen last(false)
+
+  def count[I]: Pipe[I, Int] = src => monad.void(src.count)
+
+  def countGt40k[I]: Pipe[I, Boolean] = count andThen existHalting(_ > 400000)
+
+  def fromIterator[O](itr: Iterator[O]): Stream[O] = monad.void(unfold(itr)(it => if (it.hasNext) Right(it.next() -> it) else Left(itr)))
+
+  def processFile[A](file: java.io.File, p: Pipe[String, A])(implicit M: Monoid[A]): IO[A] = IO {
+    val source = scala.io.Source.fromFile(file)
+    try {
+      fromIterator(source.getLines).pipe(p).fold(M.empty)(M.combine)._2
+    } finally {
+      source.close()
+    }
+  }
+
+  def checkFileForGt40K(file: java.io.File): IO[Boolean] = processFile(file, countGt40k)(Monoid.booleanOr)
+
+  def toCelsius(fahrenheit: Double): Double = (5.0 / 9.0) * (fahrenheit - 32.0)
+
+  def trimmed: Pipe[String, String] = _.mapOutput(_.trim)
+
+  def skipComment: Pipe[String, String] = _.filter(s => s.charAt(0) != '#')
+
+  def toDouble: Pipe[String, Double] = src => flatMapOutput(src)(_.toDoubleOption.fold(Stream())(Stream(_)))
+
+  def convertToCelsius: Pipe[Double, Double] = src => src.mapOutput(toCelsius)
+
+  val stringToCelsius: Pipe[String, Double] =
+    trimmed andThen
+    nonEmpty andThen
+    skipComment andThen
+    toDouble andThen
+    convertToCelsius
+
+
+  def convert(inputFile: String, outputFile: String): IO[Unit] = IO {
+    val source = scala.io.Source.fromFile(inputFile)
+    try {
+      val writer = Files.newBufferedWriter(Paths.get(outputFile))
+      try {
+        fromIterator(source.getLines()).pipe(stringToCelsius).fold(()) { (_ , a) =>
+          writer.write(a.toString)
+          writer.newLine()
+        }
+      } finally {
+        writer.close()
+      }
+    } finally {
+      source.close()
+    }
+  }
 }
