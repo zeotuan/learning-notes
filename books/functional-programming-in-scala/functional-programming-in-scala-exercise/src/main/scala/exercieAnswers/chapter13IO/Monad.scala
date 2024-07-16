@@ -1,7 +1,9 @@
 ﻿package exercieAnswers.chapter13IO
 
-import language.higherKinds // Disable warnings for type constructor polymorphism
+import language.higherKinds
 import language.implicitConversions
+import scala.util.control.TailCalls
+import scala.util.control.TailCalls.TailRec
 
 trait Functor[F[_]] {
   def map[A,B](a: F[A])(f: A => B): F[B]
@@ -90,4 +92,11 @@ trait Monadic[F[_],A] {
 def void: F[Unit] = F.void(a)
   def replicateM(n: Int) = F.replicateM(n)(a)
   def replicateM_(n: Int) = F.replicateM_(n)(a)
+}
+
+object Monad {
+  implicit def tailrecMonad: Monad[TailRec] = new Monad[TailRec] {
+    def unit[A](a: => A): TailRec[A] = TailCalls.done(a)
+    def flatMap[A, B](a: TailRec[A])(f: A => TailRec[B]): TailRec[B] = a.flatMap(f)
+  }
 }
