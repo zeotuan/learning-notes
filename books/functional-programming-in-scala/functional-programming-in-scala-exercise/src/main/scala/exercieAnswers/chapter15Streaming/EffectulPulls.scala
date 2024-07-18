@@ -5,6 +5,8 @@ import exercieAnswers.chapter13IO.Monad
 import exercieAnswers.chapter13IO.FreeTest.Console.IO
 
 import java.nio.file.{Files, Paths}
+import java.time.Instant
+import java.util.UUID
 import scala.annotation.tailrec
 import scala.collection.mutable
 
@@ -218,6 +220,8 @@ object EffectulPulls {
       def mapEval[O2](f: O => F[O2]): Stream[F, O2] = flatMap(o => eval(f(o)))
     }
 
+    def run[F[_], O](s: Stream[F, O])(implicit M: Monad[F]): F[Unit] = M.map(s.fold(())((_, _) => ()))(_._1)
+
     implicit class StreamNothingOps[O](self: Stream[Nothing, O]) {
       def fold[A](init: A)(f: (A, O) => A): A = self.fold(init)(f)(Monad.tailrecMonad).result._2
 
@@ -244,6 +248,16 @@ object EffectulPulls {
 }
 
 object EffectfulPullsExample {
+  import EffectulPulls._
+  import scala.util.chaining.scalaUtilChainingOps
 
+  case class Message(id: UUID, timestamp: Instant)
+
+  def format (m: Message): String= s"id: ${m.id}, timestamp: ${m.timestamp}, ..."
+
+  val dequeue: IO[Message] = ???
+
+  val logAll: Stream[IO, Unit] = Stream.eval(dequeue).repeat.mapOutput(format).pipe(log)
+  Stream.run(logAll)(???) //TODO: add IO Monad implementation
 }
 
