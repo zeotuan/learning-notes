@@ -302,5 +302,13 @@ object FreeTest {
             cb(Left(err))
         })
     }
+
+    implicit val parMonad = new Monad[Par] {
+      def unit[A](a: => A) = Par.unit(a)
+
+      def flatMap[A, B](a: Par[A])(f: A => Par[B]) = Par.fork {
+        Par.flatMap(a)(f)
+      }
+    }
   }
 }
