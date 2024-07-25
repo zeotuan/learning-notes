@@ -52,9 +52,9 @@ object Task extends Monad[Task] {
 
   def flatMap[A, B](a: Task[A])(f: A => Task[B]): Task[B] = a flatMap f
 
-  def fail[A](e: Throwable): Task[A] = Task(IO(Left(e)))
+  def fail[A](e: Throwable): Task[A] = Task(IO(Failure(e)))
 
-  def now[A](a: A): Task[A] = Task(Return(Right(a)))
+  def now[A](a: A): Task[A] = Task(Return(Success(a)))
 
   def more[A](a: => Task[A]): Task[A] = Task.now(()) flatMap (_ => a)
 
