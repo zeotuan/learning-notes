@@ -3,12 +3,15 @@
 import exercieAnswers.chapter07Parallelism.NonBlockingPar.Par
 import exercieAnswers.chapter13IO.IOApp.{IO, par, unsafePerformIO}
 
-import java.util.concurrent.ExecutorService
+import java.util.concurrent.{ExecutorService, Executors}
 import scala.util.{Failure, Success, Try}
 
 /*
  * `Task[A]` is a wrapper around `Free[Par, Try[A]]`, with some
  * convenience functions for handling exceptions.
+ *
+ * It provide an error channel to [[IO]] - a conduit for passing error that have occurred
+ * through computation.
  */
 case class Task[A](get: IO[Try[A]]) {
   def flatMap[B](f: A => Task[B]): Task[B] = Task(get.flatMap {
@@ -24,7 +27,11 @@ case class Task[A](get: IO[Try[A]]) {
       case Success(a) => Success(Success(a))
     })
 
-  def handle[B >: A](f: PartialFunction[Throwable, B]): Task[B] =
+  /**
+   * Similar to flatMap but provide the the ability to channel the Error Channel
+   * instead of the result channel
+   * */
+  def handleErrorWith[B >: A](f: PartialFunction[Throwable, B]): Task[B] =
     attempt flatMap {
       case Failure(e) => f.lift(e) map Task.now getOrElse Task.fail(e)
       case Success(a) => Task.now(a)
@@ -73,5 +80,13 @@ object Task extends Monad[Task] {
     try Right(a) catch {
       case e: Throwable => Left(e)
     }
+}
+
+object TaskExample {
+
+  val a: Task[Int] = Task(IO { "asdf".toInt })
+  val b: Task[Int] = a.map(_ + 1) // no op since IO within a will fail when evaluated
+  val c: Task[Try[Int]] = b.attempt // evaluate b exposing the underlying Try[Int]
+  val d: Try[Int] = c.run(Executors.newFixedThreadPool(2))
 }
 
