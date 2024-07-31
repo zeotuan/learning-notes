@@ -1,6 +1,7 @@
 ﻿package exercieAnswers.chapter15Streaming
 
-import exercieAnswers.chapter13IO.Monad
+import exercieAnswers.chapter13IO.IOApp.IO
+import exercieAnswers.chapter13IO.{Monad, Task}
 
 import scala.util.{Failure, Success, Try}
 
@@ -16,4 +17,20 @@ trait MonadThrow[F[_]] extends Monad[F] {
     }
   }
   def raiseError[A](t: Throwable): F[A] = ???
+}
+
+object MonadThrow {
+  implicit val taskInstance: MonadThrow[Task] = new MonadThrow[Task] {
+    override def unit[A](a: => A): Task[A] = Task( IO { Try(a) })
+
+    override def flatMap[A, B](a: Task[A])(f: A => Task[B]): Task[B] = ???
+
+    implicit class TaskMonadThrowOps[A](fa: Task[A]) {
+      def flatMap[B](f: A => Task[B]): Task[B] = ???
+
+      def attempt: Task[Try[A]] = ???
+    }
+
+    override def raiseError[A](err: Throwable): Task[A] = ???
+  }
 }

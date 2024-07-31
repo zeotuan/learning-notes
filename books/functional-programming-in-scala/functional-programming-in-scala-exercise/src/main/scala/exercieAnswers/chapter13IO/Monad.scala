@@ -76,6 +76,10 @@ trait Monad[F[_]] extends Functor[F] {
   // syntax
   implicit def toMonadic[A](a: F[A]): Monadic[F,A] =
     new Monadic[F,A] { val F = Monad.this; def get = a }
+
+  implicit class NestedMonadOps[A](ffa: F[F[A]]) {
+    def flatten: F[A] = ffa.flatMap(identity)
+  }
 }
 
 trait Monadic[F[_],A] {
@@ -89,7 +93,7 @@ trait Monadic[F[_],A] {
   def *>[B](b: F[B]) = F.map2(a,b)((_,b) => b)
   def map2[B,C](b: F[B])(f: (A,B) => C): F[C] = F.map2(a,b)(f)
   def as[B](b: B): F[B] = F.as(a)(b)
-def void: F[Unit] = F.void(a)
+  def void: F[Unit] = F.void(a)
   def replicateM(n: Int) = F.replicateM(n)(a)
   def replicateM_(n: Int) = F.replicateM_(n)(a)
 }
