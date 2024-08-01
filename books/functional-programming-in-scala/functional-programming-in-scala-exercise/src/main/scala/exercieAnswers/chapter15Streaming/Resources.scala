@@ -1,13 +1,18 @@
 ﻿package exercieAnswers.chapter15Streaming
 
+import exercieAnswers.chapter07Parallelism.Example.s
 import exercieAnswers.chapter10Monoid.Monoid
 import exercieAnswers.chapter13IO.{Monad, Task}
 import exercieAnswers.chapter13IO.IOApp.IO
+import exercieAnswers.chapter15Streaming.Resources.{Pipe, Pull}
 
+import java.io.BufferedWriter
+import java.nio.file.{Files, Paths}
 import java.util.concurrent.atomic.AtomicReference
 import scala.annotation.tailrec
 import scala.collection.mutable
-import scala.util.{Failure, Success}
+import scala.io.{BufferedSource, Source}
+import scala.util.{Failure, Success, Try}
 
 object Resources {
   private trait Delay[F[_]] {
@@ -328,6 +333,15 @@ object Resources {
 
     def raiseError[F[_], O](t: Throwable): Stream[F, O] = Error(t)
 
+    /**
+     * This implementation handle both producer exhaustion and abnormal termination.
+     * in order to handle early termination, anytime we could potentially discard the
+     * remainder of a stream, we do so in a new scope. This ensure all resources get
+     * allocated to subscopes and the entire scope subtree is closed at the earliest appropriate time
+     * */
+    def resource[F[_], R](acquire: F[R])(release: R => F[Unit]): Stream[F, R] =
+      Eval(acquire).flatMap(r => OpenScope(Output(r), Some(release(r))))
+
     implicit class StreamOps[F[_], O](self: Stream[F, O]) {
       def toPull: Pull[F, O, Unit] = self
 
@@ -337,7 +351,8 @@ object Resources {
 
       def toList(implicit F: MonadThrow[F]): F[List[O]] = self.toList
 
-      def take(n: Int): Stream[F, O] =  resultMonad.void(self.take(n)) // self.take(n).map(_ => ())
+      // partially evaluate operator now need to open a new scope
+      def take(n: Int): Stream[F, O] =  resultMonad.void(self.take(n)).scope // self.take(n).map(_ => ())
 
       def ++(that: => Stream[F, O]): Stream[F, O] = self >> that
 
@@ -358,6 +373,9 @@ object Resources {
        * completed successfully or failed with an error
        * */
       def onComplete(that: => Stream[F, O]): Stream[F, O] = handleErrorWith(t => that ++ raiseError(t)) ++ that
+
+
+      def scope: Stream[F, O] = OpenScope(self, None)
     }
 
     def run[F[_], O](s: Stream[F, O])(implicit M: MonadThrow[F]): F[Unit] = M.map(s.fold(())((_, _) => ()))(_._1)
@@ -386,6 +404,79 @@ object Resources {
   def drain[F[_], O]: Pipe[F, O, Nothing] = src => Stream.flatMap(src)(_ => Stream.empty)
 }
 
-object EffectfulPullsExample {
+object ResourcePullExample {
+  import Resources.Stream
+  import Resources.Stream.StreamOps
+
+  def file(path: String): Stream[Task, Source] = {
+    // properly should make creating Task a bit less verbose
+    val openTask = Task(IO { Try { Source.fromFile(path) } })
+    val closeTask = (s: BufferedSource) => Task(IO { Try { s.close }})
+    Stream.resource(openTask)(closeTask)
+  }
+
+  def lines(path: String): Stream[Task, String] = Stream.flatMap(
+    Stream.flatMap(file(path))(source =>
+      Stream.eval(Task(IO { Try {source.getLines()}}))
+    )
+  )(Stream.fromIterator)
+
+  def fileWriter(path: String): Stream[Task, BufferedWriter] = {
+    val openWriterTask = Task(IO { Try { Files.newBufferedWriter(Paths.get(path)) } })
+    val closeWriterTask = (s: BufferedWriter) => Task(IO { Try { s.close() }})
+    Stream.resource(openWriterTask)(closeWriterTask)
+  }
+
+  def writeLines(path: String): Pipe[Task, String, Unit] = lines => Stream.flatMap(fileWriter(path))(
+    writer => {
+      lines.mapEval(line => Task(IO {
+        Try {
+        writer.write(line)
+        writer.newLine()
+        }
+      }))
+    }
+  )
+  def toCelsius(fahrenheit: Double): Double = (5.0 / 9.0) * (fahrenheit - 32.0)
+
+  val nonEmpty: Pipe[Task, String, String] = _.filter(_.nonEmpty)
+
+  def trimmed: Pipe[Task, String, String] = _.mapOutput(_.trim)
+
+  def skipComment: Pipe[Task, String, String] = _.filter(s => s.charAt(0) != '#')
+
+  def toDouble: Pipe[Task, String, Double] = src => Pull.flatMapOutput(src)(_.toDoubleOption.fold(Stream())(Stream(_)))
+
+  def convertToCelsius: Pipe[Task, Double, Double] = src => src.mapOutput(toCelsius)
+
+  def doubleToString: Pipe[Task, Double, String] = src => Pull.flatMapOutput(src)(d => Stream(d.toString))
+
+  val conversion: Pipe[Task, String, String] = trimmed andThen
+    nonEmpty andThen
+    skipComment andThen
+    toDouble andThen
+    convertToCelsius andThen
+    doubleToString
+
+
+  import scala.util.chaining.scalaUtilChainingOps
+  def convert(inputFile: String, outputFile: String): Task[Unit] = Stream.run(
+    lines(inputFile)
+      .pipe(conversion)
+      .pipe(writeLines(outputFile))
+  )
+
+
+  // We can even perform  Dynamic Resource allocation - where we can open a new resource for each element of the stream
+  def convertDynamic(inputFile: String, outputFile: String): Task[Unit] = Stream.run(
+    // read a file contain path to muliple files
+    // concatenate all the files into a single stream and perform conversion
+    Pull.flatMapOutput(lines(inputFile))(lines).pipe(conversion).pipe(writeLines(outputFile))
+  )
+
+  // we can also perform  multisink write
+  def convertMultisink(inputFile: String): Task[Unit] = Stream.run(
+    Pull.flatMapOutput(lines(inputFile))(file => lines(file).pipe(conversion).pipe(writeLines(file)))
+  )
 }
 
