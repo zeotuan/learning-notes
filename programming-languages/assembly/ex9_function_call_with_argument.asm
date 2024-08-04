@@ -1,5 +1,5 @@
 global main 
-extern prinf # external symbol printf
+extern printf # external symbol printf
 
 section .data
 	msg db "The $i", 0x0a, 0x00 # 0x00 is null terminator for c string
