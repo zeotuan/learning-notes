@@ -27,7 +27,11 @@ object PrintableInstances {
   }
 }
 
-final case class Cat(name: String, age: Int, color: String)
+final case class Cat(name: String, age: Int, color: String) {
+  override def equals(other: Any): Boolean = other match {
+    case c: Cat => name == c.name && age == c.age && color == c.color
+    case _ => false
+}
 
 // interface object - an interface that use a type class
 object Printable {
