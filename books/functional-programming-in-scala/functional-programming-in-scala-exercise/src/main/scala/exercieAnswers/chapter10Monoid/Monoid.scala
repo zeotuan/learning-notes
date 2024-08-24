@@ -213,7 +213,7 @@ object Monoid {
       case (Part(l1, w1, r1), Part(l2, w2, r2)) => Part(l1, w1 + w2 + (if ((r1 + l2).isEmpty) 0 else 1) , r2)
     }
 
-    def empty: WC  = new Stub("")
+    def empty: WC  = Stub("")
   }
 
   def wcGen: Gen[WC] = {

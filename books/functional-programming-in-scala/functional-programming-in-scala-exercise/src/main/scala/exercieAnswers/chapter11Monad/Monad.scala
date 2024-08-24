@@ -9,7 +9,7 @@ import exercieAnswers.chapter11Monad.Monad.stateMonad
 import exercieAnswers.chapter12Applicative.Applicative
 
 /**
- * a functor is an impplementation of map that preserve the structure of the data type
+ * a functor is an implementation of map that preserve the structure of the data type
  * the functor law are:
  * - identity: x.map(identity) == x
  * - composition: x.map(f).map(g) == x.map(f andThen g)
@@ -43,7 +43,7 @@ object Functor {
  *
  * monad provide a context for introducing and binding variables and performing variable substitution
  *
- * The Monad contract doesn’t specify what is happening between the lines, only that whatever is happening
+ * The Monad contract does not specify what is happening between the lines, only that whatever is happening
  * satisfies the laws of associativity and identity.
  *
  * Providing a Monad instance for a type constructor has practical usefulness. Doing so gives access to
