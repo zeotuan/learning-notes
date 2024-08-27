@@ -1,7 +1,5 @@
 ﻿package sandbox.C2_MonoidAndSemiGroup
 
-
-
 object Raw {
   trait SemiGroup[A] {
     def combine(a: A, b: A): A
