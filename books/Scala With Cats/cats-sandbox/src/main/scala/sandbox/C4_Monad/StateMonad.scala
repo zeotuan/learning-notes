@@ -1,10 +1,6 @@
 ﻿package sandbox.C4_Monad
 
 import cats.implicits.catsSyntaxApplicativeId
-import sandbox.C4_Monad.CatMonad.b
-
-object Raw {
-}
 
 object CatStateMonad {
   import cats.data.State

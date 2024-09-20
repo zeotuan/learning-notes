@@ -1,14 +1,5 @@
 ﻿package sandbox.C4_Monad
 
-object Raw {
-  import sandbox.C4_Monad.Raw
-  /**
-   * @tparam F Monad type
-   * @tparam E Error type
-   * */
-  trait MonadError[F[_], E] extends Raw.Monad[F] {
-  }
-}
 object CatEvalMonad {
   import cats.Eval
   val now = Eval.now(math.random + 1000) // eager and memoized similar to val
