@@ -60,3 +60,30 @@ object MonadTransformer {
   val futureEitherOrValVal: Future[Either[String, Option[Int]]]  = futureEitherOrVal.value
   Await.result(futureEitherOrValVal, 2.seconds) // Right(Some(42))
 }
+
+object MonadTransformerGlueCodeExample {
+  import cats.data.Writer
+  import cats.data.OptionT
+  import scala.util.{Try, Failure, Success}
+  type Logged[A] = Writer[List[String], A]
+
+  // general raw method that return untransformed stack
+  def parseNumber(str: String): Logged[Option[Int]] = Try(str.toInt) match {
+    case Success(value) => Writer(List(s"parsed $str"), Some(value))
+    case Failure(exception) => Writer(List(s"Failed to parse $str"), None)
+  }
+
+  def addAll(a: String, b: String, c: String): Logged[Option[Int]] = {
+    // local usage of monadTransformer to simplify composition
+    val result = for {
+      a <- OptionT(parseNumber(a))
+      b <- OptionT(parseNumber(b))
+      c <- OptionT(parseNumber(c))
+    } yield a + b + c
+    result.value
+  }
+
+  // normal code are not forced to use OptionT
+  val result1 = addAll("1", "2", "3")
+  val result2 = addAll("1", "a", "3")
+}
