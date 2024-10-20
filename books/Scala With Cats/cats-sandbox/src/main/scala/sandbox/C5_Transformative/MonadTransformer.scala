@@ -33,6 +33,18 @@ object MonadTransformer {
     y <- b
   } yield x + y // OptionT(Right(Some(42)))
 
+  // Compare to without monad Transformer
+  val a1: Either[String, Option[Int]] = Right(Some(10))
+  val b1: Either[String, Option[Int]] = Right(Some(20))
+  // The composition will be much more verbose
+  val c1 = for {
+    x <- a1
+    y <- b1
+  } yield for {
+    a <- x
+    b <- y
+  } yield a + b
+
   type FutureEither[A] = EitherT[Future, String, A] // Future[Either[String, A]]
   type FutureEitherOption[A] = OptionT[FutureEither, A] // Future[Either[String, Option[A]]]
 
