@@ -2,8 +2,13 @@
 
 import cats.data.EitherT
 
-import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, Future}
 
+/**
+ * Monad Transformer make it easier to work with nested monads stack
+ * It eliminate the need for nested for comprehension and flatMap
+ * */
 object MonadTransformer {
   import cats.data.OptionT
   import cats.instances.list._
@@ -98,4 +103,42 @@ object MonadTransformerGlueCodeExample {
   // normal code are not forced to use OptionT
   val result1 = addAll("1", "2", "3")
   val result2 = addAll("1", "a", "3")
+}
+
+object MonadTransformerExercise {
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  val powerLevels = Map(
+    "Jazz" -> 6,
+    "Bumblebee" -> 8,
+    "Hot Rod" -> 10
+  )
+
+  type Response[A] = EitherT[Future, String, A] // Future[Either[String, A]]
+
+  def getPowerLevel(autobot: String): Response[Int] = powerLevels.get(autobot) match {
+    case Some(value) => EitherT.right(Future(value))
+    case None => EitherT.left(Future(s"$autobot is unreachable"))
+  }
+
+  def canSpecialMove(ally1: String, ally2: String): Response[Boolean] = {
+    val combinedPower = for {
+      power1 <- getPowerLevel(ally1)
+      power2 <- getPowerLevel(ally2)
+    } yield power1 + power2
+    combinedPower.map(_ > 15)
+  }
+
+  def tacticalReport(ally1: String, ally2: String): String = {
+    Await.result(canSpecialMove(ally1, ally2).value, 1.second) match {
+      case Left(msg) =>
+        s"Comms error: $msg"
+      case Right(true) =>
+        s"$ally1 and $ally2 are ready to roll out!"
+      case Right(false) =>
+        s"$ally1 and $ally2 need a recharge."
+    }
+  }
+
+
 }
