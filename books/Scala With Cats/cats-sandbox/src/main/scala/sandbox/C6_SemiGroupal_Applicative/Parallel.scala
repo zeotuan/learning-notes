@@ -1,8 +1,7 @@
 ﻿package sandbox.C6_SemiGroupal_Applicative
 
 import cats.arrow.FunctionK
-import cats.{Applicative, Monad, Semigroup, ~>}
-import cats.implicits.catsSyntaxSemigroup
+import cats.{Applicative, Monad, ~>}
 
 /**
  * calling product on type with Monad instance result in sequential semantics
