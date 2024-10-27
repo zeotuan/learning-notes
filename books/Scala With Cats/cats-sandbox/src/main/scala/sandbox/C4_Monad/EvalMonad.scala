@@ -33,7 +33,7 @@ object CatEvalMonad {
       s"$str What's up!"
     }
 
-  // map and flatMap of Eval are trampolined which  make them stake safe
+  // map and flatMap of Eval are trampolined which  make them stack safe
   // Eval is useful to ensure stack safety but it come with the cost
   // It create a chain of functions object on the heap to avoid consuming stack space
   // accessing heap is not as fast as and we are still limited by heap size
