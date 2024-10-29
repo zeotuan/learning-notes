@@ -1,5 +1,8 @@
 ﻿package sandbox.C7_Foldable_Traverse
 
+import cats.Applicative
+import cats.implicits.{catsSyntaxApplicativeId, catsSyntaxTuple2Semigroupal}
+
 import scala.concurrent.Future
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -40,4 +43,18 @@ object TraverseSample {
         item <- item
       } yield accum :+ item
     }
+
+  def sequence[A](values: List[Future[A]]): Future[List[A]] = traverse(values)(identity)
+
+  // by substituting the initial value with Applicative.pure
+  // and the combining function with SemiGroupal.combine
+  // we now have A more generic version of traverse which can be used with any Applicative
+  def listTraverse[F[_]: Applicative, A, B](list: List[A])(func: A => F[B]): F[List[B]] =
+    list.foldLeft(List.empty[B].pure[F]) {
+      (accum, item) =>(accum, func(item)).mapN((a, b) => a :+ b)
+    }
+
+  def listSequence[F[_]: Applicative, A](list: List[F[A]]): F[List[A]] = listTraverse(list)(identity)
+
+  val totalUptime2 = Await.result(listTraverse(hostnames)(host => Future(host.length * 60)), 1.second)
 }
