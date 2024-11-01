@@ -11,6 +11,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 /**
  * higher level tool that leverage Applicative to provide
  * more lawful, convenient pattern of iteration
+ * with Traverse we can turn an F[G[A]] into a G[F[A]] for any F with an instance of
+ * Traverse and any G with an instance of Applicative
  * */
 object TraverseSample {
   val hostnames = List(
@@ -57,4 +59,40 @@ object TraverseSample {
   def listSequence[F[_]: Applicative, A](list: List[F[A]]): F[List[A]] = listTraverse(list)(identity)
 
   val totalUptime2 = Await.result(listTraverse(hostnames)(host => Future(host.length * 60)), 1.second)
+  // using default SemiGroupal instance for Option return None here since flatMap is sequential
+  listTraverse(List(1, 2, 3))(n => if (n % 2 == 0) Some(n) else None)
+  // we get Some(List(2, 4, 6) here since all element divisible by 2
+  listTraverse(List(2, 4, 6))(n => if (n % 2 == 0) Some(n) else None)
+
+
+  // Traverse with Validated
+  import cats.data.Validated
+  import cats.instances.list._
+
+  type ErrorOr[A] = Validated[List[String], A]
+
+  def process(inputs: List[Int]): ErrorOr[List[Int]] = listTraverse(inputs) { n =>
+    if (n % 2 == 0) Validated.Valid(n)
+    else Validated.Invalid(List(s"$n is not even"))
+  }
+}
+
+trait RawTraverse[F[_]] {
+  def traverse[G[_]: Applicative, A, B](inputs: F[A])(func: A => G[B]): G[F[B]]
+  def sequence[G[_]: Applicative, A](inputs: F[G[A]]): G[F[A]] = traverse(inputs)(identity)
+}
+
+object CatTraverseSample {
+  import cats.Traverse
+  import cats.instances.future._ // for Applicative
+  import cats.instances.list._ // for Traverse
+
+  val totalUptime = Traverse[List].traverse(List("alpha.example.com", "beta.example.com", "gamma.demo.com"))(n => Future(n.length * 60))
+  val number2 = Traverse[List].traverse(List(1,2,3))(n => if (n % 2 == 0) Some(n) else None)
+
+  // even sorter approach  via syntax
+  import cats.syntax.traverse._
+  List("alpha.example.com", "beta.example.com", "gamma.demo.com").traverse(n => Future(n.length * 60))
+  List(1, 2, 3).traverse(n => if (n % 2 == 0) Some(n) else None)
+
 }
