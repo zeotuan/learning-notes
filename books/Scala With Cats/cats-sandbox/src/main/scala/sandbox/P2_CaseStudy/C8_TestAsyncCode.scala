@@ -1,4 +1,4 @@
-﻿package sandbox.C8_CaseStud_Testing_Async_Code
+﻿package sandbox.P2_CaseStudy
 
 import cats.instances.future._
 import cats.instances.list._
