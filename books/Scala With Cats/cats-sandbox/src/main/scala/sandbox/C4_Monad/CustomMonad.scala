@@ -1,4 +1,4 @@
-﻿package sandbox.C4_Monad
+package sandbox.C4_Monad
 
 import cats.syntax.functor._
 import cats.syntax.flatMap._

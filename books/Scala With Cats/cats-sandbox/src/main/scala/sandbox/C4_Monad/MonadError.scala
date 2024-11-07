@@ -1,4 +1,4 @@
-﻿package sandbox.C4_Monad
+package sandbox.C4_Monad
 
 object Raw {
   import sandbox.C4_Monad.Raw

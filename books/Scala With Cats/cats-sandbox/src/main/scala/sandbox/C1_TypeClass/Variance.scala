@@ -1,4 +1,4 @@
-﻿package sandbox.C1_TypeClass
+package sandbox.C1_TypeClass
 
 object Variance {
   sealed trait Shape

@@ -1,4 +1,4 @@
-﻿package sandbox.C1_TypeClass
+package sandbox.C1_TypeClass
 
 import cats.Eq
 import cats.implicits._

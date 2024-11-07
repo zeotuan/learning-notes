@@ -1,4 +1,4 @@
-﻿package sandbox.C7_Foldable_Traverse
+package sandbox.C7_Foldable_Traverse
 
 import cats.{Eval, Monoid}
 

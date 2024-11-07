@@ -1,4 +1,4 @@
-﻿package sandbox.C5_Transformative
+package sandbox.C5_Transformative
 
 import cats.data.EitherT
 

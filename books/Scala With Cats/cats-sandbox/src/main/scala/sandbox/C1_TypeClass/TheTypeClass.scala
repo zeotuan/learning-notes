@@ -1,4 +1,4 @@
-﻿package sandbox
+package sandbox
 
 // type class represents a set of functionality that we want to implement
 

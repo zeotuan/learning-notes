@@ -1,4 +1,4 @@
-﻿package sandbox.C2_MonoidAndSemiGroup
+package sandbox.C2_MonoidAndSemiGroup
 
 object Raw {
   trait SemiGroup[A] {

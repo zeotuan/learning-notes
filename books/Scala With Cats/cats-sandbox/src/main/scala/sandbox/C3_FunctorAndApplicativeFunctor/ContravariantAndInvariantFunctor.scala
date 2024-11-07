@@ -1,4 +1,4 @@
-﻿package sandbox.C3_FunctorAndApplicativeFunctor
+package sandbox.C3_FunctorAndApplicativeFunctor
 
 import cats.Invariant.ops.toAllInvariantOps
 import cats.InvariantSemigroupal.ops.toAllInvariantSemigroupalOps

@@ -1,4 +1,4 @@
-﻿package sandbox.P2_CaseStudy
+package sandbox.P2_CaseStudy
 
 import cats.instances.future._
 import cats.instances.list._

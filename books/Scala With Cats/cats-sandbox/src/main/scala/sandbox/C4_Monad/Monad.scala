@@ -1,4 +1,4 @@
-﻿package sandbox.C4_Monad
+package sandbox.C4_Monad
 
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{Await, Future}

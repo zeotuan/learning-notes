@@ -1,4 +1,4 @@
-﻿package sandbox.C3_FunctorAndApplicativeFunctor
+package sandbox.C3_FunctorAndApplicativeFunctor
 
 object Raw {
   // fa.map(a => a) == fa

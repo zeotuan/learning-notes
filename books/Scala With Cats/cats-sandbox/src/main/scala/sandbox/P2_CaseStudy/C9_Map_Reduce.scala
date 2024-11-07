@@ -1,4 +1,4 @@
-﻿package sandbox.P2_CaseStudy
+package sandbox.P2_CaseStudy
 
 
 import cats.{Applicative, Functor, Id, Monoid, Traverse}

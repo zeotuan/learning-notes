@@ -1,4 +1,4 @@
-﻿package sandbox.C6_SemiGroupal_Applicative
+package sandbox.C6_SemiGroupal_Applicative
 
 import cats.Functor
 
