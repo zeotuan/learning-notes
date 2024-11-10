@@ -1,19 +1,20 @@
 package sandbox.P2_CaseStudy
 
 import cats.Semigroup
-import cats.data.Validated
-import cats.data.Validated.{Valid, Invalid}
+import cats.data.{NonEmptyList, Validated}
+import cats.data.Validated.{Invalid, Valid}
 import cats.syntax.either._
 import cats.syntax.semigroup._
 import cats.instances.list._
 import cats.instances.all._
 import cats.syntax.validated._
 import cats.syntax.apply._
+import sandbox.P2_CaseStudy.CheckADTSample.{alphanumeric, contains, containsOnce, longerThan}
 
-trait Check[E, A] {
+trait Check1[E, A] {
   def apply(value: A): Either[E, A]
-  def monadAnd(that: Check[E, A]): Check[E, A] = (a: A) => apply(a).flatMap(that(_)) // not good: sequential
-  def and(that: Check[E, A]): Check[E, A] = ???  // Use SemiGroupal instead to accumulate errors
+  def monadAnd(that: Check1[E, A]): Check1[E, A] = (a: A) => apply(a).flatMap(that(_)) // not good: sequential
+  def and(that: Check1[E, A]): Check1[E, A] = ???  // Use SemiGroupal instead to accumulate errors
 }
 
 // We can represent Check as function and Check is just a wrapper around that function
@@ -64,10 +65,10 @@ object CheckF {
  * - ADT instances is similar the Tree of Expression - logical execution plan
  * - the apply method is similar to the interpreter that execute the plan
  * */
-sealed trait CheckADT[E, A] {
-  import CheckADT._
-  def and(that: CheckADT[E, A]): CheckADT[E, A] = And(this, that)
-  def or(that: CheckADT[E, A]): CheckADT[E, A] = Or(this, that)
+sealed trait Predicate[E, A] {
+  import Predicate._
+  def and(that: Predicate[E, A]): Predicate[E, A] = And(this, that)
+  def or(that: Predicate[E, A]): Predicate[E, A] = Or(this, that)
   def apply(a: A)(implicit s: Semigroup[E]): Validated[E, A] = this match {
     case Pure(func) => func(a)
     case And(left, right) => (left(a), right(a)).mapN((_, _) => a)
@@ -79,20 +80,145 @@ sealed trait CheckADT[E, A] {
       }
     }
   }
+  def run(a: A)(implicit s: Semigroup[E]): Either[E, A] = apply(a).toEither
 }
 
-object CheckADT {
-  case class And[E, A](left: CheckADT[E, A], right: CheckADT[E, A]) extends CheckADT[E, A]
-  case class Or[E, A](left: CheckADT[E, A], right: CheckADT[E, A]) extends CheckADT[E, A]
-  case class Pure[E, A](func: A => Validated[E, A]) extends CheckADT[E, A]
-  def pure[E, A](f: A => Validated[E, A]): CheckADT[E, A] = Pure(f)
+object Predicate {
+  final case class And[E, A](left: Predicate[E, A], right: Predicate[E, A]) extends Predicate[E, A]
+
+  final case class Or[E, A](left: Predicate[E, A], right: Predicate[E, A]) extends Predicate[E, A]
+
+  final case class Pure[E, A](func: A => Validated[E, A]) extends Predicate[E, A]
+
+  def lift[E, A](err: E, fn: A => Boolean): Predicate[E, A] =
+    Pure(a => if (fn(a)) a.valid else err.invalid)
+
+  def apply[E, A](func: A => Validated[E, A]): Predicate[E, A] = Pure(func)
+}
+
+sealed trait Check[E, A, B] {
+  import Check._
+
+  def apply(in: A)(implicit s: Semigroup[E]): Validated[E, B]
+  def map[C](f: B => C): Check[E, A, C] = Map[E, A, B, C](this, f)
+  def flatMap[C](f: B => Check[E, A, C]): Check[E, A, C] = FlatMap[E, A, B, C](this, f)
+  def andThen[C](that: Check[E, B, C]): Check[E, A, C] = AndThen(this, that)
+}
+
+object Check {
+  final case class Map[E, A, B, C](check: Check[E, A, B], f: B => C) extends Check[E, A, C] {
+    def apply(in: A)(implicit s: Semigroup[E]): Validated[E, C] = check(in).map(f)
+  }
+  final case class FlatMap[E, A, B, C](check: Check[E, A, B], f: B => Check[E, A, C]) extends Check[E, A, C] {
+    def apply(in: A)(implicit s: Semigroup[E]): Validated[E, C] = check(in).withEither(_.flatMap(b => f(b)(in).toEither))
+  }
+  final case class AndThen[E, A, B, C](check1: Check[E, A, B], check2: Check[E, B, C]) extends Check[E, A, C] {
+    def apply(in: A)(implicit s: Semigroup[E]): Validated[E, C] = check1(in).withEither(_.flatMap(b => check2(b).toEither))
+  }
+  final case class Pure[E, A, B](func: A => Validated[E, B]) extends Check[E, A, B] {
+    def apply(in: A)(implicit s: Semigroup[E]): Validated[E, B] = func(in)
+  }
+  final case class PurePredicate[E, A](pred: Predicate[E, A]) extends Check[E, A, A] {
+    def apply(in: A)(implicit s: Semigroup[E]): Validated[E, A] = pred(in)
+  }
+
+  def apply[E, A](pred: Predicate[E, A]): Check[E, A, A] = PurePredicate(pred)
+  def apply[E, A, B](func: A => Validated[E, B]): Check[E, A, B] = Pure(func)
 }
 
 object CheckADTSample {
-//  val a: CheckADT[List[String], Int] = CheckADT.pure(v => if (v > 2) Right(v) else Left(List("Must be > 2")))
-//  val b: CheckADT[List[String], Int] = CheckADT.pure(v => if (v < -2) Right(v) else Left(List("Must be < -2")))
-//  val c:  CheckADT[List[String], Int] = a and b
-//
-//  c(6) // Left(List("Must be < -2"))
-//  c(1) // Left(List("Must be > 2", "Must be < -2"))
+  import cats.data.{NonEmptyList, Validated}
+  type Errors = NonEmptyList[String]
+  def error(s: String): NonEmptyList[String] = NonEmptyList(s, Nil)
+
+  def longerThan(n: Int): Predicate[Errors, String] = Predicate.lift(
+    error(s"Must be longer than $n characters"),
+    str => str.size > n
+  )
+  val alphanumeric: Predicate[Errors, String] = Predicate.lift(
+    error(s"Must be all alphanumeric characters"),
+    str => str.forall(_.isLetterOrDigit)
+  )
+  def contains(char: Char): Predicate[Errors, String] = Predicate.lift(
+    error(s"Must contain the character $char"),
+    str => str.contains(char)
+  )
+  def containsOnce(char: Char): Predicate[Errors, String] = Predicate.lift(
+    error(s"Must contain the character $char only once"),
+    str => str.filter(c => c == char).size == 1
+  )
+
+  val checkUsername: Check[Errors, String, String] = Check(longerThan(3) and alphanumeric)
+  val checkPassword: Check[Errors, String, String] = Check(longerThan(8) and containsOnce('!') and containsOnce('?'))
+  val splitEMail: Check[NonEmptyList[String], String, (String, String)] = Check { email =>
+     email.split('@') match {
+      case Array(name, domain) => (name, domain).valid
+      case _ => error("Must contain a single @ character").invalid
+    }
+  }
+
+  val checkEmailName: Check[Errors, String, String] = Check(longerThan(6))
+  val checkEmailDomain: Check[Errors, String, String] = Check(longerThan(3) and contains('.'))
+  val joinEmail: Check[Errors, (String, String), String] = Check[Errors, (String, String), String] {
+    case (l, r) =>  (checkEmailName(l), checkEmailDomain(r)).mapN((l, r) => l + "@" +  r)
+  }
+
+  val checkEMail: Check[Errors, String, String] = splitEMail andThen joinEmail
+
+  final case class User(username: String, password: String, email: String)
+  def createUser(username: String, password: String, email: String): Validated[Errors, User] = {
+    (checkUsername(username), checkPassword(password), checkEMail(email)).mapN(User)
+  }
+}
+
+/**
+ * The Predicate we had written is essentially a function A => Validated[E, A]
+ * Check is a wrapper around Predicate that lets us compose them
+ * A more abstract concept that captures this idea is Kleisli arrow
+ * Kleisli is a wrapper around function A => F[B]
+ * This allows us to have this sequencing monadic transformation:
+ * A => F[A] flatMap A => F[B] flatMap B => F[C] = A => F[C]
+ *
+ * */
+object KleisliSample {
+  import cats.data.Kleisli
+  import cats.instances.list._
+
+  val step1: Kleisli[List, Int, Int] = Kleisli(x => List(x + 1, x - 1))
+  val step2: Kleisli[List, Int, Int] = Kleisli(x => List(x, -x))
+  val step3: Kleisli[List, Int, Int] = Kleisli(x => List(x * 2, x / 2))
+  val pipelines = step1 andThen step2 andThen step3
+  pipelines.run(20) // List(42, 10, 21, -10, 40, 10, 19, -9)
+
+
+  type Errors = NonEmptyList[String]
+  type Result[A] = Either[Errors, A]
+  type CheckK[A, B] = Kleisli[Result, A, B]
+
+  // we no longer need to define the Check ADT type to compose the predicates
+  def error(s: String): NonEmptyList[String] = NonEmptyList(s, Nil)
+  def check[A, B](func: A => Result[B]): CheckK[A, B] = Kleisli(func)
+  def checkPred[A](pred: Predicate[Errors, A]): CheckK[A, A] = Kleisli[Result, A, A](pred.run)
+
+  val checkUsername: CheckK[String, String] = checkPred(longerThan(3) and alphanumeric)
+  val checkPassword: CheckK[String, String] = checkPred(longerThan(8) and containsOnce('!') and containsOnce('?'))
+  val splitEMail: CheckK[String, (String, String)] = check { email =>
+    email.split('@') match {
+      case Array(name, domain) => Right((name, domain))
+      case _ => error("Must contain a single @ character").asLeft
+    }
+  }
+
+  val checkEmailName: CheckK[String, String] = checkPred(longerThan(6))
+  val checkEmailDomain: CheckK[String, String] =checkPred(longerThan(3) and contains('.'))
+  val joinEmail: CheckK[(String, String), String] = check {
+    case (l, r) =>  (checkEmailName(l), checkEmailDomain(r)).mapN((l, r) => l + "@" +  r)
+  }
+
+  val checkEMail: CheckK[String, String] = splitEMail andThen joinEmail
+
+  final case class User(username: String, password: String, email: String)
+  def createUser(username: String, password: String, email: String): Result[User] = {
+    (checkUsername(username), checkPassword(password), checkEMail(email)).mapN(User)
+  }
 }
