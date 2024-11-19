@@ -91,4 +91,14 @@ final case class GCCounter2[A](counters: Map[String, A]) {
     }
 
     def total(implicit m: CommutativeMonoid[A]): A = counters.values.toList.combineAll // same as foldLeft(m.empty)(_ |+| _)
-  }
+}
+
+trait GCounter[F[_, _], K, V] {
+  def increment(f: F[K, V])(k: K, v: V)(implicit m: CommutativeMonoid[V]): F[K, V]
+  def merge(f1: F[K, V], f2: F[K, V])(implicit b: BoundedSemiLattice[V]): F[K, V]
+  def total(f: F[K, V])(implicit m: CommutativeMonoid[V]): V
+}
+
+object GCounter {
+  def apply[F[_, _], K, V](implicit counter: GCounter[F, K, V]): GCounter[F, K, V] = counter
+}
