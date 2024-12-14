@@ -2,10 +2,11 @@ package sandbox.P2_CaseStudy
 
 import cats.implicits.catsSyntaxSemigroup
 import cats.kernel.CommutativeMonoid
-import cats.instances.list._ // for Monoid
-import cats.instances.map._ // for Monoid
-import cats.syntax.semigroup._ // for |+|
-import cats.syntax.foldable._ // for combineAll
+import cats.instances.list._
+import cats.instances.map._
+import cats.syntax.semigroup._
+import cats.syntax.foldable._
+import sandbox.P2_CaseStudy.KeyValueStore.KvsOps // for combineAll
 
 
 /**
@@ -45,18 +46,18 @@ import cats.syntax.foldable._ // for combineAll
  * - idempotent property ensure merging of same counter always yield the same result
  * -> idempotent commutative monoid (bounded semilattice)
  * */
-final case class GCCounter(counters: Map[String, Int]) {
-  def increment(machine: String, amount: Int): GCCounter = {
+final case class GCCounter1(counters: Map[String, Int]) {
+  def increment(machine: String, amount: Int): GCCounter1 = {
     val newCount = counters.getOrElse(machine, 0) + amount
-    GCCounter(counters + (machine -> newCount))
+    GCCounter1(counters + (machine -> newCount))
   }
 
-  def merge(that: GCCounter): GCCounter = {
+  def merge(that: GCCounter1): GCCounter1 = {
     val machines = counters.keySet ++ that.counters.keySet
     val merged = machines.map { machine =>
       machine -> Math.max(counters.getOrElse(machine, 0), that.counters.getOrElse(machine, 0))
     }.toMap
-    GCCounter(merged)
+    GCCounter1(merged)
   }
 
   def total: Int = counters.values.sum
@@ -101,4 +102,49 @@ trait GCounter[F[_, _], K, V] {
 
 object GCounter {
   def apply[F[_, _], K, V](implicit counter: GCounter[F, K, V]): GCounter[F, K, V] = counter
+
+  implicit def mapGCounter[K, V]: GCounter[Map, K, V] = new GCounter[Map, K, V] {
+    def increment(f: Map[K, V])(k: K, v: V)(implicit m: CommutativeMonoid[V]): Map[K, V] = {
+      val newV = f.getOrElse(k, m.empty) |+| v
+      f + (k -> newV)
+    }
+
+    def merge(f1: Map[K, V], f2: Map[K, V])(implicit b: BoundedSemiLattice[V]): Map[K, V] = f1 |+| f2
+
+    def total(f: Map[K, V])(implicit m: CommutativeMonoid[V]): V = f.values.toList.combineAll
+  }
+
+  implicit def gCounterKvs[F[_, _], K, V](implicit kvs: KeyValueStore[F], km: CommutativeMonoid[F[K, V]]): GCounter[F, K, V] = new GCounter[F, K, V] {
+    def increment(f: F[K, V])(k: K, v: V)(implicit m: CommutativeMonoid[V]): F[K, V] = {
+      val newV = f.getOrElse(k, m.empty) |+| v
+      kvs.put(f)(k, newV)
+    }
+
+    def merge(f1: F[K, V], f2: F[K, V])(implicit b: BoundedSemiLattice[V]): F[K, V] = f1 |+| f2
+
+    def total(f: F[K, V])(implicit m: CommutativeMonoid[V]): V = f.values.combineAll
+  }
+}
+
+// Custom keyValueStore implementation
+trait KeyValueStore[F[_, _]] {
+  def put[K, V](f: F[K, V])(k: K, v: V): F[K, V]
+  def get[K, V](f: F[K, V])(k: K): Option[V]
+  def getOrElse[K, V](f: F[K, V])(k: K, default: V): V = get(f)(k).getOrElse(default)
+  def values[K, V](f: F[K, V]): List[V]
+}
+
+object KeyValueStore {
+  def mapKeyValueStore: KeyValueStore[Map] = new KeyValueStore[Map] {
+    def put[K, V](f: Map[K, V])(k: K, v: V): Map[K, V] = f + (k -> v)
+    def get[K, V](f: Map[K, V])(k: K): Option[V] = f.get(k)
+    override def values[K, V](f: Map[K, V]): List[V] = f.values.toList
+  }
+
+  implicit class KvsOps[F[_, _], K, V](f: F[K, V]) {
+    def put(key: K, value: V)(implicit kvs: KeyValueStore[F]): F[K, V] = kvs.put(f)(key, value)
+    def get(key: K)(implicit kvs: KeyValueStore[F]): Option[V] = kvs.get(f)(key)
+    def getOrElse(key: K, default: V)(implicit kvs: KeyValueStore[F]): V = kvs.getOrElse(f)(key, default)
+    def values(implicit kvs: KeyValueStore[F]): List[V] = kvs.values(f)
+  }
 }
