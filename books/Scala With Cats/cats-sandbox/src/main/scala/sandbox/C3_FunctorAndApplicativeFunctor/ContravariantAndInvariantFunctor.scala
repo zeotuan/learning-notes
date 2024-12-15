@@ -75,10 +75,10 @@ object InvariantFunctor {
 
   implicit def boxCodec2[A](implicit c: Codec[A]): Codec[Box[A]] = c.imap(Box(_), _.value)
 
-  import cats.Monoid
-  import cats.instances.string._
+  import cats.implicits._
   import cats.syntax.invariant._
-  import cats.syntax.semigroup._
+  import cats.instances.string._
+  import cats.Monoid
 
   implicit val symbolMoniod: Monoid[Symbol] = Monoid[String].imap(Symbol.apply)(_.name)
   Monoid[Symbol].empty

@@ -27,16 +27,16 @@ object CatEvalMonad {
     a + b
   }
 
-  // we can use memoize to memoize a chain of compuration
+  // we can use memoize to memoize a chain of computation
   greets.memoize.map { str =>
       println("s4")
       s"$str What's up!"
     }
 
   // map and flatMap of Eval are trampolined which  make them stack safe
-  // Eval is useful to ensure stack safety but it come with the cost
-  // It create a chain of functions object on the heap to avoid consuming stack space
-  // accessing heap is not as fast as and we are still limited by heap size
+  // Eval is useful to ensure stack safety, but it comes with the cost
+  // It creates a chain of functions objects on the heap to avoid consuming stack space
+  // accessing heap is not as fast as, and we are still limited by heap size
   def factorial(n: BigInt): Eval[BigInt] = if (n == 1) {
     Eval.now(n)
   } else {

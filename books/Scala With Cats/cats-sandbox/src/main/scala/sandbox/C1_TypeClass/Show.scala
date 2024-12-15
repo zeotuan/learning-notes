@@ -11,7 +11,6 @@ import java.time.LocalDate
 
 object ShowExample {
   import cats.Show
-  import cats.instances.int
   import cats.implicits._
   val showInts = Show.apply[Int]
 

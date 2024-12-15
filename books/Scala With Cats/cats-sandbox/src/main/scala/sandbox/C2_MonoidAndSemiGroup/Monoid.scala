@@ -30,9 +30,14 @@ object Raw {
 
 object CatMonoid {
   import cats.Monoid
-  import cats.instances.string._
-  import cats.syntax.semigroup._
-  import cats.instances.map._
+  import cats.implicits._
+  // we should just import cats.implicits._ unless there is good reason to import individually like below
+//  import cats.instances.int._
+//  import cats.instances.string._
+//  import cats.syntax.semigroup._
+//  import cats.instances.map._
+//  import cats.instances.option._
+//  import cats.instances.tuple._
 
   Map("a" -> 1) |+| Map("b" -> 2)
   Option(1) |+| Option(2)

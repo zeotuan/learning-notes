@@ -1,14 +1,14 @@
 package sandbox.C1_TypeClass
 
-import sandbox.C1_TypeClass.JsonSyntax.PrintableOps
-
-
 // This is our type class
 trait Printable[A] {
   def format(value: A): String
 }
 
-object PrintableInstances {
+object Printable {
+  def format[A](value: A)(implicit p: Printable[A]): String = p.format(value)
+  def print[A](value: A)(implicit p: Printable[A]): Unit = println(format(value))
+
   implicit val stringPrintable = new Printable[String] {
     def format(value: String): String = value
   }
@@ -25,31 +25,23 @@ object PrintableInstances {
       s"$name is a $age years old $color cat"
     }
   }
-}
 
-final case class Cat(name: String, age: Int, color: String) {
-  override def equals(other: Any): Boolean = other match {
-    case c: Cat => name == c.name && age == c.age && color == c.color
-    case _ => false
-}
-
-// interface object - an interface that use a type class
-object Printable {
-  def format[A](value: A)(implicit p: Printable[A]): String = p.format(value)
-  def print[A](value: A)(implicit p: Printable[A]): Unit = println(format(value))
-}
-
-object JsonSyntax {
   implicit class PrintableOps[A](value: A) {
     def format(implicit p: Printable[A]): String = Printable.format(value)
     def print(implicit p: Printable[A]): Unit = Printable.print(value)
   }
 }
 
+final case class Cat(name: String, age: Int, color: String) {
+  override def equals(other: Any): Boolean = other match {
+    case c: Cat => name == c.name && age == c.age && color == c.color
+    case _ => false
+  }
+}
 
 object Example {
   // in both cases compiler can search for correct parameters
-  import PrintableInstances._
+  import Printable._
   val testCat =Cat("Steve", 1, "red")
   testCat.print
 

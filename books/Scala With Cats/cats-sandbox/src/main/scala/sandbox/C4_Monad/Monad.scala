@@ -13,6 +13,7 @@ object Raw {
 }
 
 object CatMonad {
+  import cats.implicits._
   import cats.instances.list._ // for Functor
   import cats.instances.function._
   import cats.syntax.functor._
