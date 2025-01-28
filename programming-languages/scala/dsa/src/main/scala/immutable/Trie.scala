@@ -1,5 +1,7 @@
 package immutable
 
+import scala.annotation.tailrec
+
 case class Trie[A](value: Option[A], children: List[Option[Trie[A]]]) {
   def insert(key: String, value: A): Trie[A] = Trie.insert(this, key, value, 0)
   def search(key: String): Option[A] = Trie.search(this, key, 0)
@@ -44,6 +46,7 @@ object Trie {
     }
   }
 
+  @tailrec
   def search[A](node: Trie[A], key: String, step: Int): Option[A] = if (key.length == step) {
     node.value
   } else {
