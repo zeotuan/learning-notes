@@ -1,0 +1,84 @@
+# SBT specific
+target/
+project/target/
+project/project/
+.cache/
+.history/
+.lib/
+dist/*
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Scala specific
+*.class
+*.log
+
+# IDE specific files
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+.metals/
+.bloop/
+.bsp/
+
+# Eclipse
+.project
+.classpath
+.cache-main
+.scala_dependencies
+.worksheet
+.settings/
+bin/
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
+logs/
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Coverage directory used by tools like istanbul
+coverage/
+
+# Dependency directories
+node_modules/
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Scalafmt
+.scalafmt-dynamic.conf
+
+# Metals
+.metals/
+.bloop/
+.ammonite/
+metals.sbt
