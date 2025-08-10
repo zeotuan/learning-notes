@@ -67,9 +67,7 @@
            }
            private UInt16 Inbox {
               get { return (UInt16) m_waitAndInboxCounts; }
-              set { m_waitAndInboxCounts = 
-                 (Int32)((m_waitAndInboxCounts & 
-                    0xFFFF0000)|value); }
+              set { m_waitAndInboxCounts = (Int32) ((m_waitAndInboxCounts & 0xFFFF0000)|value); }
            }
 
            private WaitAndInboxCounts(Int32 waic) { m_waitAndInboxCounts = waic; }

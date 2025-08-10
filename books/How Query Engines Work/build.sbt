@@ -6,6 +6,8 @@ lazy val root = (project in file("."))
   .settings(
     name := "how-query-engines-work",
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "3.2.17" % Test
+      "org.scalatest" %% "scalatest" % "3.2.19" % Test,
+      "org.apache.arrow" % "arrow-vector" % "18.3.0",
+      "org.apache.arrow" % "arrow-memory" % "18.3.0"
     )
   )
