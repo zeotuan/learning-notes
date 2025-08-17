@@ -15,12 +15,12 @@ abstract class BinaryExpression(left: Expression, right: Expression) extends Exp
       throw new IllegalStateException("Left and right expressions must have the same data type")
     }
 
-    evaluate(leftResult, rightResult)
+    evaluateColumnVector(leftResult, rightResult)
   }
 
   /**
    * Evaluate left and right ColumnVector.
    */
   @Override
-  def evaluate(leftResult: ColumnVector, rightResult: ColumnVector): ColumnVector
+  def evaluateColumnVector(leftResult: ColumnVector, rightResult: ColumnVector): ColumnVector
 }

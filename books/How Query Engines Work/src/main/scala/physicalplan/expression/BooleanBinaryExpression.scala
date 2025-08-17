@@ -9,28 +9,31 @@ abstract class BooleanBinaryExpression(
   left: Expression,
   right: Expression
 ) extends BinaryExpression(left, right) {
-  override def evaluate(leftResult: ColumnVector, rightResult: ColumnVector): ColumnVector = {
+  override final def evaluateColumnVector(leftResult: ColumnVector, rightResult: ColumnVector): ColumnVector = {
     val v = new BitVector("v", new RootAllocator(Long.MaxValue))
     v.allocateNew()
     0 until leftResult.size foreach { i =>
       val leftValue = leftResult.getValue(i)
       val rightValue = rightResult.getValue(i)
-      val value = evaluate(leftValue, rightValue, leftResult.getType)
+      val value = evaluateValue(leftValue, rightValue, leftResult.getType)
       v.set(i, if (value) 1 else 0)
     }
     v.setValueCount(leftResult.size)
-    ArrowFieldVector(ArrowTypes.BooleanType, v)
+    ArrowFieldVector(v)
   }
 
+  /**
+   * Evaluate the expression for the given left and right value of left and right ColumnVector.
+   */
   @Override
-  def evaluate(l: Any, r: Any, arrowType: ArrowType): Boolean
+  def evaluateValue(l: Any, r: Any, arrowType: ArrowType): Boolean
 }
 
 case class EqExpression(
   left: Expression,
   right: Expression
 ) extends BooleanBinaryExpression(left, right) {
-  override def evaluate(l: Any, r: Any, arrowType: ArrowType): Boolean = {
+  override def evaluateValue(l: Any, r: Any, arrowType: ArrowType): Boolean = {
     arrowType match {
       case ArrowTypes.Int8Type => l.asInstanceOf[Byte] == r.asInstanceOf[Byte]
       case ArrowTypes.Int16Type => l.asInstanceOf[Short] == r.asInstanceOf[Short]

@@ -1,13 +1,11 @@
 package datatypes
 
+import datatypes.FieldVector.FieldVectorOps
 import org.apache.arrow.vector._
 import org.apache.arrow.vector.types.pojo.ArrowType
 
-case class ArrowFieldVector(
-  arrowType: ArrowType,
-  value: FieldVector,
-) extends ColumnVector {
-  def getType: ArrowType = arrowType
+case class ArrowFieldVector(value: FieldVector) extends ColumnVector {
+  def getType: ArrowType = value.getArrowType
 
   def getValue(i: Int): Any = {
     value match {
@@ -23,7 +21,7 @@ case class ArrowFieldVector(
         if (bytes == null) null else bytes.toString
 
       case _ =>
-        throw new UnsupportedOperationException(s"Unsupported vector type: ${value.getClass.getSimpleName}")
+        throw new IllegalStateException(s"Unsupported vector type: ${value.getClass.getSimpleName}")
     }
   }
 
