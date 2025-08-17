@@ -2,10 +2,10 @@ package datatypes
 
 import org.apache.arrow.vector.types.pojo.ArrowType
 
-class LiteralColumnVector[T](
+case class LiteralColumnVector[T](
   arrowType: ArrowType,
   value: T,
-  size: Int = 0
+  valueSize: Int = 0
 ) extends ColumnVector {
   def getType: ArrowType = arrowType
 
@@ -16,5 +16,5 @@ class LiteralColumnVector[T](
     value
   }
 
-  def size: Int = size
+  def size: Int = valueSize
 }

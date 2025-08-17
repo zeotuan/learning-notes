@@ -2,7 +2,7 @@ package logicalplan
 
 import logicalplan.expression.LogicalExpr
 
-class Projection(
+case class Projection(
   input: LogicalPlan,
   expr: Seq[LogicalExpr]
 ) extends LogicalPlan {

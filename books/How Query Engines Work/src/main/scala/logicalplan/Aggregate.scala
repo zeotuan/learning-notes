@@ -3,7 +3,7 @@ package logicalplan
 import datatypes.Schema
 import logicalplan.expression.LogicalExpr
 
-class Aggregate(
+case class Aggregate(
   input: LogicalPlan,
   groupExpr: Seq[LogicalExpr],
   aggExpr: Seq[LogicalExpr]

@@ -2,7 +2,7 @@ package logicalplan
 
 import datasource.DataSource
 
-class Scan(
+case class Scan(
   path: String,
   datasource: DataSource,
   projection: Seq[String]
@@ -15,5 +15,11 @@ class Scan(
     s"Scan(path: $path, datasource: ${datasource.getClass.getSimpleName}, projection: [])"
   } else {
     s"Scan(path: $path, datasource: ${datasource.getClass.getSimpleName}, projection: ${projection.mkString(", ")})"
+  }
+}
+
+object Scan {
+  def apply(path: String, datasource: DataSource): Scan = {
+    Scan(path, datasource, Seq.empty)
   }
 }
