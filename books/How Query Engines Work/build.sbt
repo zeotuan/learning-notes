@@ -8,6 +8,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "org.scalatest" %% "scalatest" % "3.2.19" % Test,
       "org.apache.arrow" % "arrow-vector" % "18.3.0",
-      "org.apache.arrow" % "arrow-memory" % "18.3.0"
+      "org.apache.arrow" % "arrow-memory" % "18.3.0",
+      "de.siegmar"       % "fastcsv"      % "4.1.0"
     )
   )

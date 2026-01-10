@@ -1,5 +1,7 @@
 package datatypes
 
+import scala.jdk.CollectionConverters.IterableHasAsJava
+
 case class Schema(fields: Seq[Field]) {
   def select(projection: Seq[String]): Schema = {
     if (projection.isEmpty) {
@@ -18,4 +20,7 @@ case class Schema(fields: Seq[Field]) {
       Schema(selectFields)
     }
   }
+
+  def toArrow: org.apache.arrow.vector.types.pojo.Schema =
+    new org.apache.arrow.vector.types.pojo.Schema(fields.map(_.toArrow).asJava)
 }

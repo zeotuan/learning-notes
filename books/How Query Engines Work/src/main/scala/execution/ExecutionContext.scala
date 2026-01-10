@@ -1,6 +1,7 @@
 package execution
 
-import datasource.{CsvDataSource, ParquetDataSource}
+import datasource.ParquetDataSource
+import datasource.csv.CsvDataSource
 import logicalplan.{DataFrame, DataFrameImpl, Scan}
 
 class ExecutionContext(settings: Map[String, String] = Map.empty) {
