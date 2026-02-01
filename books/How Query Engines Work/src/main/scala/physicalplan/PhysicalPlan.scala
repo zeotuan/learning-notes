@@ -4,6 +4,6 @@ import datatypes.{RecordBatch, Schema}
 
 trait PhysicalPlan {
   def schema: Schema
-  def execute(): Iterator[RecordBatch]
+  def execute: Iterable[RecordBatch]
   def children: Seq[PhysicalPlan]
 }
