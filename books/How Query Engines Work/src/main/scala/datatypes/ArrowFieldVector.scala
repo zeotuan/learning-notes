@@ -26,4 +26,6 @@ case class ArrowFieldVector(value: FieldVector) extends ColumnVector {
   }
 
   def size: Int = value.getValueCount
+
+  def setValue(i: Int, v: Any): Unit = value.setValue(i, v)
 }
