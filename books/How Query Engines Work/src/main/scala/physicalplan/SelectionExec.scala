@@ -4,7 +4,7 @@ import datatypes.FieldVector.FieldVectorOps
 import datatypes.{ArrowFieldVector, ColumnVector, FieldVector, RecordBatch, Schema}
 import org.apache.arrow.vector.BitVector
 
-class SelectionExec(input: PhysicalPlan, expression: expression.Expression) extends PhysicalPlan {
+case class SelectionExec(input: PhysicalPlan, expression: physicalplan.expression.Expression) extends PhysicalPlan {
   override def schema: Schema = schema
   override def children: Seq[PhysicalPlan] = Seq(input)
   override def execute: Iterable[RecordBatch] = input.execute.map { batch =>

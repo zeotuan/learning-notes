@@ -3,7 +3,7 @@ package logicalplan.expression
 import datatypes.{ArrowTypes, Field}
 import logicalplan.LogicalPlan
 
-class Literal[T](value: T) extends LogicalExpr {
+case class Literal[T](value: T) extends LogicalExpr {
   override def toField(input: LogicalPlan): Field = {
     val fieldType = value match {
       case _: Int => ArrowTypes.Int32Type

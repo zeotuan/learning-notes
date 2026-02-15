@@ -9,6 +9,7 @@ abstract class MathBinaryExpr(
   left: LogicalExpr,
   right: LogicalExpr
 ) extends BinaryExpr(name, op, left, right) {
+
   override def toField(input: LogicalPlan): Field = {
     Field(name, left.toField(input).dataType)
   }

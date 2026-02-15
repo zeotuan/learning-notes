@@ -1,8 +1,6 @@
 package physicalplan.aggregate
 
-import datatypes.FieldVector.FieldVectorOps
 import datatypes.{ArrowAllocator, ArrowFieldVector, RecordBatch, Schema}
-import jdk.internal.util.ByteArray
 import org.apache.arrow.vector.VectorSchemaRoot
 import physicalplan.PhysicalPlan
 import physicalplan.expression.Expression

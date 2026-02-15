@@ -2,7 +2,7 @@ package physicalplan.expression
 
 import datatypes.{ArrowTypes, ColumnVector, LiteralColumnVector, RecordBatch}
 
-class LiteralExpression[T](value: T) extends Expression {
+case class LiteralExpression[T](value: T) extends Expression {
   override def evaluate(input: RecordBatch): ColumnVector = {
     val valueType = value match {
       case _: Int => ArrowTypes.Int32Type

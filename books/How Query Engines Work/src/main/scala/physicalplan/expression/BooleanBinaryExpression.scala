@@ -5,6 +5,8 @@ import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.BitVector
 import org.apache.arrow.vector.types.pojo.ArrowType
 
+import scala.util.Try
+
 abstract class BooleanBinaryExpression(
   left: Expression,
   right: Expression
@@ -33,18 +35,58 @@ case class EqExpression(
   left: Expression,
   right: Expression
 ) extends BooleanBinaryExpression(left, right) {
-  override def evaluateValue(l: Any, r: Any, arrowType: ArrowType): Boolean = {
-    arrowType match {
-      case ArrowTypes.Int8Type => l.asInstanceOf[Byte] == r.asInstanceOf[Byte]
-      case ArrowTypes.Int16Type => l.asInstanceOf[Short] == r.asInstanceOf[Short]
-      case ArrowTypes.Int32Type => l.asInstanceOf[Int] == r.asInstanceOf[Int]
-      case ArrowTypes.Int64Type => l.asInstanceOf[Long] == r.asInstanceOf[Long]
-      case ArrowTypes.FloatType => l.asInstanceOf[Float] == r.asInstanceOf[Float]
-      case ArrowTypes.DoubleType => l.asInstanceOf[Double] == r.asInstanceOf[Double]
-      case ArrowTypes.BooleanType => l.asInstanceOf[Boolean] == r.asInstanceOf[Boolean]
-      case ArrowTypes.StringType => BooleanBinaryExpression.toString(l) == BooleanBinaryExpression.toString(r)
-    }
-  }
+  override def evaluateValue(l: Any, r: Any, arrowType: ArrowType): Boolean = BooleanBinaryExpression
+    .areNativeEqual(l, r, arrowType)
+    .getOrElse(false)
+}
+
+case class NeqExpression(
+  left: Expression,
+  right: Expression
+) extends BooleanBinaryExpression(left, right) {
+  override def evaluateValue(l: Any, r: Any, arrowType: ArrowType): Boolean = !BooleanBinaryExpression
+    .areNativeEqual(l, r, arrowType)
+    .getOrElse(false)
+}
+
+case class GtExpression(
+  left: Expression,
+  right: Expression
+) extends BooleanBinaryExpression(left, right) {
+  override def evaluateValue(l: Any, r: Any, arrowType: ArrowType): Boolean = BooleanBinaryExpression
+    .areNativeGreaterThan(l, r, arrowType)
+    .getOrElse(false)
+}
+
+case class LtExpression(
+  left: Expression,
+  right: Expression
+) extends BooleanBinaryExpression(left, right) {
+  override def evaluateValue(l: Any, r: Any, arrowType: ArrowType): Boolean = !BooleanBinaryExpression
+    .areNativeGreaterThan(r, l, arrowType)
+    .getOrElse(false)
+}
+
+case class GteExpression(
+  left: Expression,
+  right: Expression
+) extends BooleanBinaryExpression(left, right) {
+  override def evaluateValue(l: Any, r: Any, arrowType: ArrowType): Boolean =  BooleanBinaryExpression
+    .areNativeGreaterThan(l, r, arrowType)
+    .getOrElse(false) || BooleanBinaryExpression
+    .areNativeEqual(l, r, arrowType)
+    .getOrElse(false)
+}
+
+case class LteExpression(
+  left: Expression,
+  right: Expression
+) extends BooleanBinaryExpression(left, right) {
+  override def evaluateValue(l: Any, r: Any, arrowType: ArrowType): Boolean = !BooleanBinaryExpression
+    .areNativeGreaterThan(l, r, arrowType)
+    .getOrElse(false) || BooleanBinaryExpression
+    .areNativeEqual(l, r, arrowType)
+    .getOrElse(false)
 }
 
 object BooleanBinaryExpression {
@@ -61,6 +103,33 @@ object BooleanBinaryExpression {
       case b: Boolean => b
       case n: Number  => n.intValue() == 1
       case _          => throw new IllegalStateException()(s"Cannot convert $v to Boolean")
+    }
+  }
+
+  def areNativeEqual(l: Any, r: Any, arrowType: ArrowType): Try[Boolean] = Try {
+    arrowType match {
+      case ArrowTypes.Int8Type => l.asInstanceOf[Byte] == r.asInstanceOf[Byte]
+      case ArrowTypes.Int16Type => l.asInstanceOf[Short] == r.asInstanceOf[Short]
+      case ArrowTypes.Int32Type => l.asInstanceOf[Int] == r.asInstanceOf[Int]
+      case ArrowTypes.Int64Type => l.asInstanceOf[Long] == r.asInstanceOf[Long]
+      case ArrowTypes.FloatType => l.asInstanceOf[Float] == r.asInstanceOf[Float]
+      case ArrowTypes.DoubleType => l.asInstanceOf[Double] == r.asInstanceOf[Double]
+      case ArrowTypes.BooleanType => l.asInstanceOf[Boolean] == r.asInstanceOf[Boolean]
+      case ArrowTypes.StringType => toString(l) == toString(r)
+      case _ => throw new IllegalStateException()(s"Unsupported data type for equality comparison: $arrowType")
+    }
+  }
+
+  def areNativeGreaterThan(l: Any, r: Any, arrowType: ArrowType): Try[Boolean] = Try {
+    arrowType match {
+      case ArrowTypes.Int8Type => l.asInstanceOf[Byte] > r.asInstanceOf[Byte]
+      case ArrowTypes.Int16Type => l.asInstanceOf[Short] > r.asInstanceOf[Short]
+      case ArrowTypes.Int32Type => l.asInstanceOf[Int] > r.asInstanceOf[Int]
+      case ArrowTypes.Int64Type => l.asInstanceOf[Long] > r.asInstanceOf[Long]
+      case ArrowTypes.FloatType => l.asInstanceOf[Float] > r.asInstanceOf[Float]
+      case ArrowTypes.DoubleType => l.asInstanceOf[Double] > r.asInstanceOf[Double]
+      case ArrowTypes.StringType => toString(l) > toString(r)
+      case _ => throw new IllegalStateException()(s"Unsupported data type for greater than comparison: $arrowType")
     }
   }
 }
