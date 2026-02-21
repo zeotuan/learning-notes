@@ -6,7 +6,7 @@ case class Join(
   left: LogicalPlan,
   right: LogicalPlan,
   joinType: JoinType,
-  condition: Option[logicalplan.expression.LogicalExpr]
+  condition: logicalplan.expression.LogicalExpr
 ) extends LogicalPlan {
   override def schema: datatypes.Schema = {
     datatypes.Schema(left.schema.fields ++ right.schema.fields)
@@ -15,8 +15,7 @@ case class Join(
   override def children: Seq[LogicalPlan] = Seq(left, right)
 
   override def toString: String = {
-    val condStr = condition.map(_.toString).getOrElse("None")
-    s"Join(type: $joinType, condition: $condStr)"
+    s"Join(type: $joinType, condition: $condition)"
   }
 
 }
