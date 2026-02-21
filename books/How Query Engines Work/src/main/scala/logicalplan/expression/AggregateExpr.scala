@@ -8,6 +8,9 @@ abstract class AggregateExpr(name: String, expr: LogicalExpr) extends LogicalExp
     Field(name, expr.toField(input).dataType)
   }
   override def toString: String = s"$name(${expr.toString})"
+
+  final def getName: String = name
+  final def getExpr: LogicalExpr = expr
 }
 
 case class Sum(input : LogicalExpr) extends AggregateExpr("SUM", input)
